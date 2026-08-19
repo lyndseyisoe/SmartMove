@@ -2,6 +2,7 @@ from flask import Flask
 
 from .config import Config
 from .extensions import cors, db, migrate
+from .models.booking import Booking
 
 
 def create_app(config_class=Config):
