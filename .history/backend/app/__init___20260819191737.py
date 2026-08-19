@@ -1,8 +1,8 @@
+from flask import Flask
+from inventory import inventory_bp
 from .config import Config
 from .extensions import cors, db, migrate
-from .inventory import inventory_bp
-from . import routes
-from flask import Flask
+from . import routes as routes
 
 
 def create_app(config_class=Config):

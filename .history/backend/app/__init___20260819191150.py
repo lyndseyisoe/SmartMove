@@ -1,8 +1,9 @@
+from flask import Blueprint, Flask
+
+
+from . import routes  
 from .config import Config
 from .extensions import cors, db, migrate
-from .inventory import inventory_bp
-from . import routes
-from flask import Flask
 
 
 def create_app(config_class=Config):
@@ -12,7 +13,6 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     migrate.init_app(app, db)
-    app.register_blueprint(inventory_bp)
     cors.init_app(app)
 
     @app.get("/")
