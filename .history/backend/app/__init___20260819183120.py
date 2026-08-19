@@ -1,8 +1,5 @@
-from flask import Blueprint, Flask
+from flask import Flask
 
-inventory_bp = Blueprint("inventory", __name__, url_prefix="/api/inventory")
-
-from . import routes  
 from .config import Config
 from .extensions import cors, db, migrate
 
