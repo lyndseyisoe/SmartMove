@@ -199,22 +199,17 @@ def get_booking_distance(booking_id):
     if booking is None:
         return jsonify({"error": "Booking not found"}), 404
 
-    if (
-        booking.pickup_latitude is None
-        or booking.pickup_longitude is None
-        or booking.destination_latitude is None
-        or booking.destination_longitude is None
-    ):
+    try:
+        distance_km = calculate_distance(
+            booking.pickup_latitude,
+            booking.pickup_longitude,
+            booking.destination_latitude,
+            booking.destination_longitude,
+        )
+    except ValueError as error:
         return jsonify({
-            "error": "Pickup and destination coordinates are required"
+            "error": str(error)
         }), 400
-
-    distance_km = calculate_distance(
-        booking.pickup_latitude,
-        booking.pickup_longitude,
-        booking.destination_latitude,
-        booking.destination_longitude,
-    )
 
     return jsonify({
         "booking_id": booking.id,
@@ -222,3 +217,5 @@ def get_booking_distance(booking_id):
         "destination_address": booking.destination_address,
         "distance_km": distance_km,
     })
+
+    
