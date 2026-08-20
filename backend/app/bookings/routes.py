@@ -4,6 +4,7 @@ from flask import Blueprint, jsonify, request
 
 from app.extensions import db
 from app.models.booking import Booking
+from app.maps.service import calculate_distance
 
 
 bookings_bp = Blueprint("bookings", __name__, url_prefix="/bookings")
@@ -189,4 +190,35 @@ def get_booking(booking_id):
         "destination_longitude": booking.destination_longitude,
         "created_at": booking.created_at.isoformat(),
         "updated_at": booking.updated_at.isoformat(),
+    })
+
+@bookings_bp.get("/<int:booking_id>/distance")
+def get_booking_distance(booking_id):
+    booking = db.session.get(Booking, booking_id)
+
+    if booking is None:
+        return jsonify({"error": "Booking not found"}), 404
+
+    if (
+        booking.pickup_latitude is None
+        or booking.pickup_longitude is None
+        or booking.destination_latitude is None
+        or booking.destination_longitude is None
+    ):
+        return jsonify({
+            "error": "Pickup and destination coordinates are required"
+        }), 400
+
+    distance_km = calculate_distance(
+        booking.pickup_latitude,
+        booking.pickup_longitude,
+        booking.destination_latitude,
+        booking.destination_longitude,
+    )
+
+    return jsonify({
+        "booking_id": booking.id,
+        "pickup_address": booking.pickup_address,
+        "destination_address": booking.destination_address,
+        "distance_km": distance_km,
     })
