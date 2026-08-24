@@ -1,24 +1,55 @@
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
+from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.extensions import db
-from app.models.booking import Booking
 from app.maps.service import calculate_distance
+from app.models.booking import Booking
 
 
-bookings_bp = Blueprint("bookings", __name__, url_prefix="/bookings")
+bookings_bp = Blueprint(
+    "bookings",
+    __name__,
+    url_prefix="/bookings"
+)
+
+
+def booking_to_dict(booking):
+    """Convert a Booking model into a JSON-friendly dictionary."""
+    return {
+        "id": booking.id,
+        "client_id": booking.client_id,
+        "mover_id": booking.mover_id,
+        "moving_date": booking.moving_date.isoformat(),
+        "status": booking.status,
+        "pickup_address": booking.pickup_address,
+        "pickup_latitude": booking.pickup_latitude,
+        "pickup_longitude": booking.pickup_longitude,
+        "destination_address": booking.destination_address,
+        "destination_latitude": booking.destination_latitude,
+        "destination_longitude": booking.destination_longitude,
+        "created_at": booking.created_at.isoformat(),
+        "updated_at": booking.updated_at.isoformat(),
+    }
 
 
 @bookings_bp.post("/")
+@jwt_required()
 def create_booking():
+    """
+    Create a booking for the currently authenticated user.
+    The client_id comes from the JWT token.
+    """
+
     data = request.get_json()
 
     if not data:
-        return jsonify({"error": "Request body is required"}), 400
+        return jsonify({
+            "error": "Request body is required"
+        }), 400
 
     required_fields = [
-        "client_id",
         "mover_id",
         "moving_date",
         "pickup_address",
@@ -26,8 +57,9 @@ def create_booking():
     ]
 
     missing_fields = [
-        field for field in required_fields
-        if field not in data
+        field
+        for field in required_fields
+        if not data.get(field)
     ]
 
     if missing_fields:
@@ -46,8 +78,10 @@ def create_booking():
             "error": "moving_date must use YYYY-MM-DD format"
         }), 400
 
+    client_id = int(get_jwt_identity())
+
     booking = Booking(
-        client_id=data["client_id"],
+        client_id=client_id,
         mover_id=data["mover_id"],
         moving_date=moving_date,
         status="pending",
@@ -64,35 +98,89 @@ def create_booking():
 
     return jsonify({
         "message": "Booking created successfully",
-        "booking": {
-            "id": booking.id,
-            "client_id": booking.client_id,
-            "mover_id": booking.mover_id,
-            "moving_date": booking.moving_date.isoformat(),
-            "status": booking.status,
-            "pickup_address": booking.pickup_address,
-            "pickup_latitude": booking.pickup_latitude,
-            "pickup_longitude": booking.pickup_longitude,
-            "destination_address": booking.destination_address,
-            "destination_latitude": booking.destination_latitude,
-            "destination_longitude": booking.destination_longitude,
-            "created_at": booking.created_at.isoformat(),
-            "updated_at": booking.updated_at.isoformat(),
-        }
+        "booking": booking_to_dict(booking)
     }), 201
 
 
-@bookings_bp.patch("/<int:booking_id>")
-def update_booking(booking_id):
-    booking = db.session.get(Booking, booking_id)
+@bookings_bp.get("/")
+@jwt_required()
+def get_bookings():
+    """
+    Return only bookings belonging to the authenticated user.
+    """
+
+    client_id = int(get_jwt_identity())
+
+    bookings = (
+        Booking.query
+        .filter_by(client_id=client_id)
+        .order_by(Booking.created_at.desc())
+        .all()
+    )
+
+    return jsonify([
+        booking_to_dict(booking)
+        for booking in bookings
+    ]), 200
+
+
+@bookings_bp.get("/<int:booking_id>")
+@jwt_required()
+def get_booking(booking_id):
+    """
+    Get one booking belonging to the authenticated user.
+    """
+
+    client_id = int(get_jwt_identity())
+
+    booking = (
+        Booking.query
+        .filter_by(
+            id=booking_id,
+            client_id=client_id
+        )
+        .first()
+    )
 
     if booking is None:
-        return jsonify({"error": "Booking not found"}), 404
+        return jsonify({
+            "error": "Booking not found"
+        }), 404
+
+    return jsonify({
+        "booking": booking_to_dict(booking)
+    }), 200
+
+
+@bookings_bp.patch("/<int:booking_id>")
+@jwt_required()
+def update_booking(booking_id):
+    """
+    Update the moving date or status of a user's booking.
+    """
+
+    client_id = int(get_jwt_identity())
+
+    booking = (
+        Booking.query
+        .filter_by(
+            id=booking_id,
+            client_id=client_id
+        )
+        .first()
+    )
+
+    if booking is None:
+        return jsonify({
+            "error": "Booking not found"
+        }), 404
 
     data = request.get_json()
 
     if not data:
-        return jsonify({"error": "Request body is required"}), 400
+        return jsonify({
+            "error": "Request body is required"
+        }), 400
 
     allowed_statuses = {
         "pending",
@@ -126,78 +214,33 @@ def update_booking(booking_id):
 
     return jsonify({
         "message": "Booking updated successfully",
-        "booking": {
-            "id": booking.id,
-            "client_id": booking.client_id,
-            "mover_id": booking.mover_id,
-            "moving_date": booking.moving_date.isoformat(),
-            "status": booking.status,
-            "pickup_address": booking.pickup_address,
-            "pickup_latitude": booking.pickup_latitude,
-            "pickup_longitude": booking.pickup_longitude,
-            "destination_address": booking.destination_address,
-            "destination_latitude": booking.destination_latitude,
-            "destination_longitude": booking.destination_longitude,
-            "created_at": booking.created_at.isoformat(),
-            "updated_at": booking.updated_at.isoformat(),
-        }
-    })
+        "booking": booking_to_dict(booking)
+    }), 200
 
-@bookings_bp.get("/")
-def get_bookings():
-    bookings = Booking.query.order_by(
-        Booking.created_at.desc()
-    ).all()
-
-    return jsonify([
-        {
-            "id": booking.id,
-            "client_id": booking.client_id,
-            "mover_id": booking.mover_id,
-            "moving_date": booking.moving_date.isoformat(),
-            "status": booking.status,
-            "pickup_address": booking.pickup_address,
-            "pickup_latitude": booking.pickup_latitude,
-            "pickup_longitude": booking.pickup_longitude,
-            "destination_address": booking.destination_address,
-            "destination_latitude": booking.destination_latitude,
-            "destination_longitude": booking.destination_longitude,
-            "created_at": booking.created_at.isoformat(),
-            "updated_at": booking.updated_at.isoformat(),
-        }
-        for booking in bookings
-    ])
-
-
-@bookings_bp.get("/<int:booking_id>")
-def get_booking(booking_id):
-    booking = db.session.get(Booking, booking_id)
-
-    if booking is None:
-        return jsonify({"error": "Booking not found"}), 404
-
-    return jsonify({
-        "id": booking.id,
-        "client_id": booking.client_id,
-        "mover_id": booking.mover_id,
-        "moving_date": booking.moving_date.isoformat(),
-        "status": booking.status,
-        "pickup_address": booking.pickup_address,
-        "pickup_latitude": booking.pickup_latitude,
-        "pickup_longitude": booking.pickup_longitude,
-        "destination_address": booking.destination_address,
-        "destination_latitude": booking.destination_latitude,
-        "destination_longitude": booking.destination_longitude,
-        "created_at": booking.created_at.isoformat(),
-        "updated_at": booking.updated_at.isoformat(),
-    })
 
 @bookings_bp.get("/<int:booking_id>/distance")
+@jwt_required()
 def get_booking_distance(booking_id):
-    booking = db.session.get(Booking, booking_id)
+    """
+    Calculate the distance between the pickup and destination
+    of a booking belonging to the authenticated user.
+    """
+
+    client_id = int(get_jwt_identity())
+
+    booking = (
+        Booking.query
+        .filter_by(
+            id=booking_id,
+            client_id=client_id
+        )
+        .first()
+    )
 
     if booking is None:
-        return jsonify({"error": "Booking not found"}), 404
+        return jsonify({
+            "error": "Booking not found"
+        }), 404
 
     try:
         distance_km = calculate_distance(
@@ -216,6 +259,4 @@ def get_booking_distance(booking_id):
         "pickup_address": booking.pickup_address,
         "destination_address": booking.destination_address,
         "distance_km": distance_km,
-    })
-
-    
+    }), 200
