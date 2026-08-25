@@ -6,6 +6,7 @@ from .models.booking import Booking
 from .users.model import User
 from .users.routes import auth_bp
 from .bookings.routes import bookings_bp
+from .quotes.routes import quotes_bp
 
 
 def create_app(config_class=Config):
@@ -21,6 +22,7 @@ def create_app(config_class=Config):
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(bookings_bp)
+    app.register_blueprint(quotes_bp)
 
     @app.get("/")
     def health_check():
