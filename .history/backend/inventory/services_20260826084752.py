@@ -1,5 +1,4 @@
 from app.extensions import db
-
 from .model import CatalogItem, UserInventoryItem
 
 

@@ -2,9 +2,10 @@ from flask import jsonify, request
 
 from app.extensions import db
 
-from . import inventory_bp, services
-from .model import CatalogItem, RoomTemplate, UserInventoryItem
+from . import inventory_bp
+from .model import RoomTemplate, CatalogItem, UserInventoryItem
 from .schemas import catalog_item_to_dict, inventory_item_to_dict
+from . import services
 
 
 @inventory_bp.route("/templates", methods=["GET"])

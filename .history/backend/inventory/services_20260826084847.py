@@ -1,6 +1,6 @@
-from app.extensions import db
-
 from .model import CatalogItem, UserInventoryItem
+
+from app.extensions import db
 
 
 def populate_inventory_from_template(user_id, template_id):
