@@ -19,9 +19,7 @@ export default function Register() {
 
   const onSubmit = async (values) => {
     dispatch(clearAuthError());
-    // Clients skip the login page entirely after registering — see
-    // authSlice.js for why (the backend doesn't issue a token on register).
-    const result = await dispatch(registerUser(values));
+  const result = await dispatch(registerUser(values));
     if (registerUser.fulfilled.match(result)) {
       navigate('/client/dashboard');
     }

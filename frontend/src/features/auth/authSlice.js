@@ -2,12 +2,6 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import authApi from '../../services/authApi';
 import { normalizeError, setAuthToken } from '../../services/api';
 
-// The backend issues a JWT in the response body (no cookie) and has no
-// refresh-token endpoint yet, so this is the only way a session survives a
-// page reload right now. sessionStorage (not localStorage) so it's at least
-// cleared when the tab closes. This is a real trade-off — anything running
-// on the page can read it — and should be revisited once the backend adds
-// either an HTTP-only cookie or a refresh-token flow.
 const TOKEN_STORAGE_KEY = 'smartmove:token';
 
 function persistToken(token) {
@@ -20,20 +14,14 @@ function persistToken(token) {
 }
 
 const initialState = {
-  user: null, // { id, name, email, role }
+  user: null, 
   isAuthenticated: false,
-  loading: true, // true until the initial /auth/me probe resolves
-  authError: null, // error from the last login/register attempt
+  loading: true, 
+  authError: null, 
 };
 
 const VALID_ROLES = ['client', 'mover', 'admin'];
 
-/**
- * Guards against a "successful" response that isn't actually a valid user —
- * e.g. VITE_API_URL pointing nowhere real and a dev server SPA-fallback
- * (or any other proxy/misconfiguration) returning 200 with the wrong body.
- * A 200 status alone should never be enough to consider someone signed in.
- */
 function assertValidUser(data) {
   const user = data?.user;
   if (!user || typeof user !== 'object' || !user.id || !VALID_ROLES.includes(user.role)) {
@@ -47,8 +35,6 @@ function assertValidUser(data) {
 export const fetchCurrentUser = createAsyncThunk('auth/me', async (_, { rejectWithValue }) => {
   const storedToken = sessionStorage.getItem(TOKEN_STORAGE_KEY);
   if (!storedToken) {
-    // No token to probe with — skip the network round trip and go straight
-    // to "signed out" instead of firing a request that's guaranteed to 401.
     return rejectWithValue(null);
   }
   setAuthToken(storedToken);
@@ -78,9 +64,6 @@ export const login = createAsyncThunk('auth/login', async (payload, { rejectWith
 
 export const register = createAsyncThunk('auth/register', async (payload, { rejectWithValue }) => {
   try {
-    // The backend's /auth/register doesn't issue a token — it only creates
-    // the account — so to keep the "no separate login step" UX from the
-    // workflow spec, we log in right after with the same credentials.
     await authApi.register(payload);
     const loginData = await authApi.login({ email: payload.email, password: payload.password });
     if (!loginData?.access_token) {
@@ -96,8 +79,6 @@ export const register = createAsyncThunk('auth/register', async (payload, { reje
 });
 
 export const logout = createAsyncThunk('auth/logout', async () => {
-  // Stateless JWT, no logout endpoint on the backend yet — "logging out" is
-  // just discarding the token on our end.
   persistToken(null);
 });
 

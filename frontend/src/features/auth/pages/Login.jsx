@@ -7,8 +7,6 @@ import { Input, Button } from '../../../components/ui';
 import { login, clearAuthError } from '../authSlice';
 import { loginSchema } from '../schemas';
 
-// No "forgot password" or "register as mover" links — neither has a
-// backend yet (no reset-password route, and register can't set a role).
 export default function Login() {
   const dispatch = useDispatch();
   const navigate = useNavigate();

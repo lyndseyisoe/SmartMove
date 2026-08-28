@@ -5,9 +5,6 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required.'),
 });
 
-// Matches backend/app/users/routes.py::register — name/email/password
-// required, password must be 8+ characters. There is no `role` field to
-// send: the backend always creates a "client" account regardless.
 export const registerSchema = z
   .object({
     name: z.string().min(2, 'Enter your full name.'),
