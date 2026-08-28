@@ -22,8 +22,6 @@ describe('Login page', () => {
   });
 
   it('logs in successfully, captures the bearer token, and stores the user', async () => {
-    // Matches the real backend: /auth/login returns the token in the body,
-    // not a cookie — see services/api.js.
     authApi.login.mockResolvedValue({ access_token: 'fake-jwt', user: { id: 1 } });
     authApi.me.mockResolvedValue({ user: { id: 1, name: 'Jane', email: 'jane@example.com', role: 'client' } });
 
@@ -88,7 +86,7 @@ describe('fetchCurrentUser response validation', () => {
   it('does not authenticate when /auth/me returns a malformed body (e.g. an HTML fallback page)', async () => {
     sessionStorage.setItem(TOKEN_KEY, 'stale-token');
     const { store } = renderWithProviders(<div />, { route: '/' });
-    authApi.me.mockResolvedValue('<!doctype html>...'); // what a misconfigured proxy/dev-fallback would return
+    authApi.me.mockResolvedValue('<!doctype html>...'); 
     const { fetchCurrentUser } = await import('../authSlice');
     await store.dispatch(fetchCurrentUser());
     expect(store.getState().auth.isAuthenticated).toBe(false);
@@ -98,7 +96,7 @@ describe('fetchCurrentUser response validation', () => {
   it('does not authenticate when the user object is missing a valid role', async () => {
     sessionStorage.setItem(TOKEN_KEY, 'stale-token');
     const { store } = renderWithProviders(<div />, { route: '/' });
-    authApi.me.mockResolvedValue({ user: { id: '1', name: 'Jane' } }); // no role field
+    authApi.me.mockResolvedValue({ user: { id: '1', name: 'Jane' } }); 
     const { fetchCurrentUser } = await import('../authSlice');
     await store.dispatch(fetchCurrentUser());
     expect(store.getState().auth.isAuthenticated).toBe(false);

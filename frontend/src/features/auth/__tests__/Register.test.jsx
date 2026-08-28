@@ -14,9 +14,6 @@ describe('Register page', () => {
   });
 
   it('registers, then logs in automatically since /auth/register issues no token', async () => {
-    // Matches the real backend: POST /auth/register only creates the
-    // account (201 + user, no access_token) — the frontend has to log in
-    // right after with the same credentials to establish a session.
     authApi.register.mockResolvedValue({ message: 'User registered successfully', user: { id: 1 } });
     authApi.login.mockResolvedValue({ access_token: 'fake-jwt', user: { id: 1 } });
     authApi.me.mockResolvedValue({
