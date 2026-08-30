@@ -26,6 +26,15 @@ export const updateBookingStatus = createAsyncThunk(
   }
 );
 
+export const deleteBooking = createAsyncThunk('bookings/delete', async (id, { rejectWithValue }) => {
+  try {
+    await bookingApi.delete(id);
+    return { id };
+  } catch (err) {
+    return rejectWithValue(normalizeError(err));
+  }
+});
+
 const bookingSlice = createSlice({
   name: 'bookings',
   initialState: {
@@ -35,6 +44,8 @@ const bookingSlice = createSlice({
     error: null,
     creating: false,
     createError: null,
+    deleting: false,
+    deleteError: null,
   },
   reducers: {},
   extraReducers: (builder) => {
@@ -72,6 +83,15 @@ const bookingSlice = createSlice({
         if (state.selected?.id === action.payload.id) {
           state.selected = { ...state.selected, ...action.payload };
         }
+      })
+      .addCase(deleteBooking.fulfilled, (state, action) => {
+        state.list = state.list.filter((b) => b.id !== action.payload.id);
+        if (state.selected?.id === action.payload.id) {
+          state.selected = null;
+        }
+      })
+      .addCase(deleteBooking.rejected, (state, action) => {
+        state.deleteError = action.payload?.message || 'Unable to delete booking.';
       });
   },
 });

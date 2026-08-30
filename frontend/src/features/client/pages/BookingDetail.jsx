@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
-import { Card, CardBody, CardHeader, Badge, Select, Input, SaveToggle, LoadingState } from '../../../components/ui';
-import { fetchBookingById } from '../../bookings/bookingSlice';
+import { Card, CardBody, CardHeader, Badge, Select, Input, SaveToggle, LoadingState, ConfirmDialog } from '../../../components/ui';
+import { fetchBookingById, deleteBooking } from '../../bookings/bookingSlice';
 import bookingApi from '../../../services/bookingApi';
 import { formatDate } from '../../../utils/format';
 import { BOOKING_STATUS, STATUS_META } from '../../../utils/constants';
@@ -10,11 +11,23 @@ import { BOOKING_STATUS, STATUS_META } from '../../../utils/constants';
 export default function BookingDetail() {
   const { id } = useParams();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const booking = useSelector((s) => s.bookings.selected);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     dispatch(fetchBookingById(id));
   }, [dispatch, id]);
+
+  const handleCancel = async () => {
+    setCancelling(true);
+    const result = await dispatch(deleteBooking(id));
+    if (deleteBooking.fulfilled.match(result)) {
+      navigate('/client/bookings');
+    }
+    setCancelling(false);
+  };
 
   if (!booking || String(booking.id) !== id) return <LoadingState label="Loading booking..." />;
 
@@ -40,13 +53,22 @@ export default function BookingDetail() {
             <Detail label="Mover ID" value={booking.moverId ?? '—'} />
           </CardBody>
         </Card>
-        <ManageBookingCard key={booking.id} booking={booking} onSaved={() => dispatch(fetchBookingById(id))} />
+        <ManageBookingCard key={booking.id} booking={booking} onSaved={() => dispatch(fetchBookingById(id))} onCancel={() => setCancelOpen(true)} />
       </div>
+
+      <ConfirmDialog
+        open={cancelOpen}
+        title="Cancel booking"
+        description="Are you sure you want to cancel this booking? This action cannot be undone."
+        onConfirm={handleCancel}
+        onClose={() => setCancelOpen(false)}
+        loading={cancelling}
+      />
     </div>
   );
 }
 
-function ManageBookingCard({ booking, onSaved }) {
+function ManageBookingCard({ booking, onSaved, onCancel }) {
   const [status, setStatus] = useState(booking.status);
   const [moveDate, setMoveDate] = useState(booking.moveDate || '');
 
@@ -71,6 +93,7 @@ function ManageBookingCard({ booking, onSaved }) {
             onSaved();
           }}
         />
+        <Button variant="danger" onClick={onCancel}>Cancel booking</Button>
       </CardBody>
     </Card>
   );

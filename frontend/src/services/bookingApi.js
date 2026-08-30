@@ -16,6 +16,8 @@ const bookingApi = {
   updateStatus: (id, status) =>
     api.patch(`/bookings/${id}`, { status }).then((r) => fromApiBooking(r.data.booking)),
 
+  delete: (id) => api.delete(`/bookings/${id}`).then((r) => r.data),
+
   getDistance: (id) => api.get(`/bookings/${id}/distance`).then((r) => r.data),
 };
 
