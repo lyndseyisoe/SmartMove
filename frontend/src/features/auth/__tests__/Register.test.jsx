@@ -26,12 +26,16 @@ describe('Register page', () => {
     await userEvent.type(screen.getByLabelText(/email/i), 'jane@example.com');
     await userEvent.type(screen.getByLabelText(/^password/i), 'password123');
     await userEvent.type(screen.getByLabelText(/confirm password/i), 'password123');
+    await userEvent.selectOptions(screen.getByLabelText(/role/i), 'client');
     await userEvent.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => {
       expect(store.getState().auth.isAuthenticated).toBe(true);
     });
     expect(authApi.register).toHaveBeenCalledOnce();
+    expect(authApi.register).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Jane Wanjiru', email: 'jane@example.com', password: 'password123', role: 'client' })
+    );
     expect(authApi.login).toHaveBeenCalledWith(
       expect.objectContaining({ email: 'jane@example.com', password: 'password123' })
     );
@@ -48,6 +52,7 @@ describe('Register page', () => {
     await userEvent.type(screen.getByLabelText(/email/i), 'jane@example.com');
     await userEvent.type(screen.getByLabelText(/^password/i), 'password123');
     await userEvent.type(screen.getByLabelText(/confirm password/i), 'password123');
+    await userEvent.selectOptions(screen.getByLabelText(/role/i), 'client');
     await userEvent.click(screen.getByRole('button', { name: /create account/i }));
 
     await waitFor(() => {
@@ -63,6 +68,7 @@ describe('Register page', () => {
     await userEvent.type(screen.getByLabelText(/email/i), 'jane@example.com');
     await userEvent.type(screen.getByLabelText(/^password/i), 'password123');
     await userEvent.type(screen.getByLabelText(/confirm password/i), 'different123');
+    await userEvent.selectOptions(screen.getByLabelText(/role/i), 'client');
     await userEvent.click(screen.getByRole('button', { name: /create account/i }));
 
     expect(await screen.findByText(/passwords don't match/i)).toBeInTheDocument();
