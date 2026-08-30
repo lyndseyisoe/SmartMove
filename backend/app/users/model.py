@@ -34,6 +34,14 @@ class User(db.Model):
         default="client"
     )
 
+    company_name = db.Column(db.String(120), nullable=True)
+    phone = db.Column(db.String(40), nullable=True)
+    bio = db.Column(db.Text, nullable=True)
+    service_area = db.Column(db.String(160), nullable=True)
+    pricing_type = db.Column(db.String(20), nullable=True)
+    price_per_hour = db.Column(db.Numeric(10, 2), nullable=True)
+    price_per_distance = db.Column(db.Numeric(10, 2), nullable=True)
+
     created_at = db.Column(
         db.DateTime,
         nullable=False,

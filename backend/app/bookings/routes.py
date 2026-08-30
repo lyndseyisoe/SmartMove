@@ -6,6 +6,7 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 from app.extensions import db
 from app.maps.service import calculate_distance
 from app.models.booking import Booking
+from app.quotes.service import calculate_quote
 
 
 bookings_bp = Blueprint(
@@ -23,6 +24,12 @@ def booking_to_dict(booking):
         "mover_id": booking.mover_id,
         "moving_date": booking.moving_date.isoformat(),
         "status": booking.status,
+        "quoted_amount": float(booking.quoted_amount) if booking.quoted_amount is not None else None,
+        "quote_distance_km": booking.quote_distance_km,
+        "estimated_hours": booking.estimated_hours,
+        "item_count": booking.item_count,
+        "floor_number": booking.floor_number,
+        "has_elevator": booking.has_elevator,
         "pickup_address": booking.pickup_address,
         "pickup_latitude": booking.pickup_latitude,
         "pickup_longitude": booking.pickup_longitude,
@@ -80,11 +87,29 @@ def create_booking():
 
     client_id = int(get_jwt_identity())
 
+    try:
+        quote_inputs = {
+            "distance_km": data["quote_distance_km"],
+            "estimated_hours": data["estimated_hours"],
+            "item_count": data.get("item_count", 0),
+            "floor_number": data.get("floor_number", 0),
+            "has_elevator": data.get("has_elevator", True),
+        }
+        quote = calculate_quote(**quote_inputs)
+    except (KeyError, ValueError) as error:
+        return jsonify({"error": f"A valid quote is required before booking: {error}"}), 400
+
     booking = Booking(
         client_id=client_id,
         mover_id=data["mover_id"],
         moving_date=moving_date,
         status="pending",
+        quoted_amount=quote["total_estimate"],
+        quote_distance_km=quote_inputs["distance_km"],
+        estimated_hours=quote_inputs["estimated_hours"],
+        item_count=quote_inputs["item_count"],
+        floor_number=quote_inputs["floor_number"],
+        has_elevator=quote_inputs["has_elevator"],
         pickup_address=data["pickup_address"],
         pickup_latitude=data.get("pickup_latitude"),
         pickup_longitude=data.get("pickup_longitude"),
