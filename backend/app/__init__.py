@@ -11,6 +11,7 @@ from .quotes.routes import quotes_bp
 from .messages.routes import messages_bp
 from .movers.routes import movers_bp
 from .payments.routes import payments_bp
+from .tracking.routes import tracking_bp
 from .models.password_reset import PasswordResetToken
 
 
@@ -32,6 +33,7 @@ def create_app(config_class=Config):
     app.register_blueprint(messages_bp)
     app.register_blueprint(movers_bp)
     app.register_blueprint(payments_bp)
+    app.register_blueprint(tracking_bp)
 
     @app.get("/")
     def health_check():
