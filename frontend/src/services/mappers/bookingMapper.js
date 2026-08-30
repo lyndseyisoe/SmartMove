@@ -7,6 +7,7 @@ export function fromApiBooking(raw) {
     moverId: raw.mover_id,
     moveDate: raw.moving_date,
     status: raw.status,
+    estimatedCost: raw.quoted_amount,
     pickupAddress: raw.pickup_address,
     pickup:
       raw.pickup_latitude != null && raw.pickup_longitude != null
@@ -21,7 +22,6 @@ export function fromApiBooking(raw) {
     updatedAt: raw.updated_at,
     moverName: undefined,
     clientName: undefined,
-    estimatedCost: undefined,
     notes: undefined,
   };
 }
@@ -36,6 +36,12 @@ export function toApiBookingPayload(input) {
   if (input.destination?.lat !== undefined) payload.destination_latitude = input.destination.lat;
   if (input.destination?.lng !== undefined) payload.destination_longitude = input.destination.lng;
   if (input.status !== undefined) payload.status = input.status;
+  if (input.quotedAmount !== undefined) payload.quoted_amount = input.quotedAmount;
+  if (input.quoteDistanceKm !== undefined) payload.quote_distance_km = input.quoteDistanceKm;
+  if (input.estimatedHours !== undefined) payload.estimated_hours = input.estimatedHours;
+  if (input.itemCount !== undefined) payload.item_count = input.itemCount;
+  if (input.floorNumber !== undefined) payload.floor_number = input.floorNumber;
+  if (input.hasElevator !== undefined) payload.has_elevator = input.hasElevator;
 
   return payload;
 }

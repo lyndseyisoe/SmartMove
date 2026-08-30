@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
-import { Card, CardBody, CardHeader, Badge, Select, Input, SaveToggle, LoadingState } from '../../../components/ui';
+import { Link, useParams } from 'react-router-dom';
+import { CreditCard } from 'lucide-react';
+import { Card, CardBody, CardHeader, Badge, Select, Input, SaveToggle, LoadingState, Button } from '../../../components/ui';
 import { fetchBookingById } from '../../bookings/bookingSlice';
 import bookingApi from '../../../services/bookingApi';
 import { formatDate } from '../../../utils/format';
@@ -26,6 +27,7 @@ export default function BookingDetail() {
           <p className="text-sm text-[var(--color-slate)]">{formatDate(booking.moveDate)}</p>
         </div>
         <Badge status={booking.status} />
+        {booking.estimatedCost && <Button as={Link} to={`/client/bookings/${booking.id}/pay`} size="sm"><CreditCard className="size-4" /> Pay with M-Pesa</Button>}
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
