@@ -6,8 +6,8 @@ Google Maps.
 
 **This build is scoped to match the backend exactly, feature by feature.**
 Only what the Flask API actually implements today (`/auth/*`, `/bookings/*`,
-`/quotes/*`) has a page in this app. Sections with no backend yet — movers,
-admin, inventory, messaging, notifications, reviews, profile — were removed
+`/quotes/*`) has a page in this app. Sections with no backend yet — admin,
+inventory, notifications, reviews, profile — were removed
 rather than left as dead UI. As the backend adds each feature, the matching
 frontend piece gets added back in its own pass. See "What's NOT here" below
 for the full list and why.
@@ -60,11 +60,17 @@ npm run lint          # oxlint (fast); npx eslint src also available
   distance value rather than coordinates. The response is a full cost
   breakdown (base fee, distance/labour/item/floor charges, total), not a
   single number.
-- **Book a Move** (`/client/book`) — creates a booking via `POST /bookings/`.
-  There is no `/movers` listing endpoint on the backend yet, so there's no
-  way to browse movers by name/rating — the "choose a mover" step is a
-  plain Mover ID number field as an interim stand-in. Swap this for a real
-  picker once that endpoint exists.
+- **Mover marketplace** (`/client/movers`) — loads registered mover accounts
+  from `GET /movers/` and lets a client pass a real mover into the booking
+  flow. Ratings and reviews are intentionally not shown until those fields
+  exist in the backend.
+- **Book a Move** (`/client/book`) — creates a booking via `POST /bookings/`
+  after selecting a registered mover.
+- **Messages** (`/client/messages`) — clients and movers can exchange
+  booking-specific messages through the authenticated `/messages/*` API.
+- **M-Pesa checkout** (`/client/bookings/:id/pay`) — starts a server-side
+  Daraja STK Push for the booking's stored quote amount and shows the payment
+  result after the callback is received.
 - **Bookings** (`/client/bookings`) — list and detail pages against
   `GET /bookings/` and `GET /bookings/<id>`. The detail page's "Manage
   booking" panel does a real `PATCH /bookings/<id>` to update status and
@@ -95,8 +101,8 @@ one feature at a time to match. Removed rather than stubbed:
 | Inventory checklist | No `/inventory` routes on the backend |
 | Mover portal (dashboard, jobs, availability) | No `/mover/*` routes, and no way to even create a mover account (register has no `role` field) |
 | Admin (users, movers, approvals, reports) | No `/admin/*` routes |
-| Browsing movers by name/rating | No `/movers` listing route (booking still works — see "Book a Move" above) |
-| Messaging | No messaging routes, and no Socket.IO on the backend (`flask-socketio` isn't even a dependency) |
+| Browsing movers by rating | Ratings/reviews are not implemented yet |
+| Real-time messaging notifications | Messages are persisted and available on refresh; Socket.IO is not implemented yet |
 | Live tracking | Same — needs Socket.IO, which doesn't exist yet |
 | Notifications | No `/notifications` routes |
 | Profile / settings | No `/profile` routes |
