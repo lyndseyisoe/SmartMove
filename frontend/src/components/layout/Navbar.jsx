@@ -18,7 +18,7 @@ export default function Navbar({ onMenuClick }) {
   };
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-[var(--color-border)] bg-white px-4 md:px-6">
+    <header className="flex h-[76px] items-center justify-between border-b border-[var(--color-border)] bg-white/85 px-4 backdrop-blur md:px-8">
       <div className="flex items-center gap-3">
         <button
           onClick={onMenuClick}
@@ -27,7 +27,7 @@ export default function Navbar({ onMenuClick }) {
         >
           <Menu className="size-5" />
         </button>
-        <span className="text-[15px] font-bold text-[var(--color-navy)] md:hidden">SmartMove</span>
+        <span className="text-[15px] font-bold text-[var(--color-navy)] md:hidden">Smart<span className="text-[var(--color-teal)]">Move</span></span>
       </div>
 
       <div className="relative">
@@ -36,7 +36,7 @@ export default function Navbar({ onMenuClick }) {
           className="flex items-center gap-2 rounded-full p-1 hover:bg-[var(--color-bg)]"
           aria-label="Account menu"
         >
-          <div className="flex size-8 items-center justify-center rounded-full bg-[var(--color-teal-light)] text-xs font-semibold text-[var(--color-teal-dark)]">
+          <div className="flex size-9 items-center justify-center rounded-full bg-[var(--color-teal-light)] text-xs font-bold text-[var(--color-teal-dark)] ring-4 ring-[var(--color-teal-light)]/40">
             {initials(user?.name) || <UserIcon className="size-4" />}
           </div>
         </button>
