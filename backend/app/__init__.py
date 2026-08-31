@@ -5,12 +5,14 @@ from .config import Config
 from .extensions import bcrypt, cors, db, jwt, migrate
 from .models.booking import Booking
 from .users.model import User
+from .inventory.model import InventoryItem
 from .users.routes import auth_bp
 from .bookings.routes import bookings_bp
 from .quotes.routes import quotes_bp
 from .messages.routes import messages_bp
 from .movers.routes import movers_bp
 from .payments.routes import payments_bp
+from .inventory.routes import inventory_bp
 from .models.password_reset import PasswordResetToken
 
 
@@ -32,6 +34,7 @@ def create_app(config_class=Config):
     app.register_blueprint(messages_bp)
     app.register_blueprint(movers_bp)
     app.register_blueprint(payments_bp)
+    app.register_blueprint(inventory_bp)
 
     @app.get("/")
     def health_check():
