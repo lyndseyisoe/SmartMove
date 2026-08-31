@@ -7,7 +7,16 @@
   <img src="https://img.shields.io/badge/PostgreSQL-17-4169e1?logo=postgresql" alt="PostgreSQL" />
 </p>
 
-SmartMove is a moving assistant web app that helps clients book moves, track belongings, and pay securely with M-Pesa. It pairs a React/Vite frontend with a Flask REST API and PostgreSQL database.
+## Features
+
+- **Booking & quotes** — clients can get a quote and book a move
+- **Mover profiles** — movers have company info, service area, and pricing
+- **M-Pesa payments** — STK Push integration via Safaricom Daraja SDK
+- **Belongings tracking** — checklist with packed/in-transit/delivered status
+- **Route mapping** — interactive Google Maps pickup/destination picker
+- **Password reset** — forgot/reset flow with email tokens
+
+## Production checklist
 
 ## Table of Contents
 
@@ -65,230 +74,24 @@ SmartMove is a moving assistant web app that helps clients book moves, track bel
 
 ## Project Structure
 
-```
-SmartMove/
-├── backend/
-│   ├── app/
-│   │   ├── __init__.py          # Flask app factory
-│   │   ├── config.py            # Environment configuration
-│   │   ├── extensions.py        # Flask extensions init
-│   │   ├── auth_email.py        # Resend email integration
-│   │   ├── users/
-│   │   │   ├── model.py         # User model
-│   │   │   └── routes.py        # Auth routes
-│   │   ├── bookings/
-│   │   │   └── routes.py        # Booking CRUD
-│   │   ├── quotes/
-│   │   │   └── routes.py        # Quote estimation
-│   │   ├── movers/
-│   │   │   └── routes.py        # Mover listing
-│   │   ├── messages/
-│   │   │   └── routes.py        # Messaging
-│   │   ├── payments/
-│   │   │   ├── routes.py        # M-Pesa STK Push
-│   │   │   └── service.py       # Daraja SDK calls
-│   │   ├── tracking/
-│   │   │   └── routes.py        # Belongings tracking
-│   │   ├── inventory/
-│   │   │   └── routes.py        # Inventory items
-│   │   ├── models/
-│   │   │   ├── booking.py       # Booking model
-│   │   │   ├── payment.py       # Payment model
-│   │   │   ├── message.py       # Message model
-│   │   │   └── password_reset.py # PasswordResetToken model
-│   │   └── maps/
-│   │       └── service.py       # Distance calculation
-│   ├── migrations/              # Alembic migrations
-│   ├── tests/                   # Backend tests
-│   ├── run.py                   # Development entrypoint
-│   ├── seed.py                  # Database seeding script
-│   └── Pipfile                  # Python dependencies
-├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   │   ├── router.jsx       # React Router config
-│   │   │   ├── store.js         # Redux store
-│   │   │   └── RouteGuards.jsx  # Auth/role guards
-│   │   ├── features/
-│   │   │   ├── auth/            # Login, Register, Forgot/Reset Password
-│   │   │   ├── client/pages/    # Dashboard, Quote, Book, Bookings, Tracking
-│   │   │   ├── mover/pages/     # Mover dashboard, jobs, availability
-│   │   │   ├── admin/pages/     # Users, movers, reports
-│   │   │   ├── bookings/        # Booking Redux slice
-│   │   │   ├── quotes/          # Quote Redux slice
-│   │   │   └── misc/pages/      # Landing, Unauthorized, NotFound
-│   │   ├── components/
-│   │   │   ├── ui/              # Reusable design system
-│   │   │   ├── layout/          # Sidebar, Navbar, DashboardLayout
-│   │   │   └── maps/            # LocationPicker, RouteMapPicker
-│   │   ├── services/            # API clients and mappers
-│   │   ├── hooks/               # Google Maps loader hook
-│   │   ├── utils/               # Formatting, distance, constants
-│   │   └── styles/              # Tailwind theme + global CSS
-│   ├── public/
-│   ├── package.json
-│   ├── vite.config.js
-│   └── index.html
-├── README.md
-└── LICENSE
-```
+## M-Pesa setup
 
-## Getting Started
+Create a Daraja app and set these environment variables:
 
-### Prerequisites
+- `MPESA_CONSUMER_KEY`
+- `MPESA_CONSUMER_SECRET`
+- `MPESA_SHORTCODE`
+- `MPESA_PASSKEY`
+- `MPESA_CALLBACK_URL` — must be a public HTTPS URL
+- `MPESA_ENV` — `sandbox` for testing, `live` for production
 
-- Python 3.14+
-- Node.js 18+
-- PostgreSQL 17
-- Git
+Test with `MPESA_ENV=sandbox` before switching to `live`.
 
-### Backend Setup
+## Belongings tracking
 
-```bash
-cd backend
+The tracking feature lets clients add items to a booking and mark them as:
+- `packed` — items are packed and ready
+- `in_transit` — items are on the way
+- `delivered` — items have arrived
 
-# Create virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/Mac
-# venv\Scripts\activate   # Windows
-
-# Install dependencies
-pip install -r requirements.txt
-# or
-pipenv install --dev
-
-# Copy environment file
-cp .env.example .env
-# Edit .env with your database URL and secrets
-```
-
-### Frontend Setup
-
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Copy environment file
-cp .env.example .env
-# Edit .env with your API URL and Google Maps key
-```
-
-### Database Setup
-
-```bash
-cd backend
-
-# Run migrations
-flask db upgrade
-
-# Seed demo data
-python seed.py
-```
-
-## Environment Variables
-
-### Backend (`.env`)
-
-| Variable | Description | Default |
-|---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:postgres@localhost:5432/smartmove_db` |
-| `SECRET_KEY` | Flask secret key (min 32 chars in production) | `dev-secret-key` |
-| `JWT_SECRET_KEY` | JWT signing key (min 32 chars in production) | `dev-jwt-secret-key` |
-| `FLASK_DEBUG` | Enable debug mode | `1` |
-| `CORS_ORIGINS` | Comma-separated allowed origins | `http://localhost:5173` |
-| `FRONTEND_URL` | Frontend URL for reset links | `http://localhost:5173` |
-| `RESET_TOKEN_EXPIRES_MINUTES` | Password reset token expiry | `30` |
-| `RESEND_API_KEY` | Resend API key for emails | — |
-| `RESEND_FROM_EMAIL` | Sender email for Resend | — |
-| `MPESA_CONSUMER_KEY` | Safaricom Daraja consumer key | — |
-| `MPESA_CONSUMER_SECRET` | Safaricom Daraja consumer secret | — |
-| `MPESA_SHORTCODE` | M-Pesa shortcode | — |
-| `MPESA_PASSKEY` | M-Pesa passkey | — |
-| `MPESA_CALLBACK_URL` | Public HTTPS callback URL | — |
-| `MPESA_ENV` | `sandbox` or `live` | `sandbox` |
-
-### Frontend (`.env`)
-
-| Variable | Description |
-|---|---|
-| `VITE_API_URL` | Backend API base URL |
-| `VITE_GOOGLE_MAPS_API_KEY` | Google Maps JavaScript API key |
-
-## API Reference
-
-### Auth
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/auth/register` | Register new user |
-| POST | `/auth/login` | Login and get JWT |
-| GET | `/auth/me` | Get current user |
-| POST | `/auth/forgot-password` | Request password reset |
-| POST | `/auth/reset-password` | Reset password with token |
-
-### Bookings
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/bookings/` | Create booking |
-| GET | `/bookings/` | List user's bookings |
-| GET | `/bookings/<id>` | Get booking detail |
-| PATCH | `/bookings/<id>` | Update booking |
-| DELETE | `/bookings/<id>` | Cancel booking |
-| GET | `/bookings/<id>/distance` | Calculate route distance |
-
-### Quotes
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/quotes/` | Calculate moving estimate |
-
-### Payments
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/payments/stk-push` | Initiate M-Pesa STK Push |
-| GET | `/payments/<id>` | Check payment status |
-| POST | `/payments/callback` | M-Pesa callback (public) |
-
-### Tracking
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/tracking/booking/<id>` | List tracking items |
-| POST | `/tracking/booking/<id>` | Add tracking item |
-| PATCH | `/tracking/<id>` | Update item status |
-| DELETE | `/tracking/<id>` | Remove item |
-
-### Health
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/health` | Database readiness check |
-
-## Testing
-
-```bash
-# Backend
-cd backend
-pytest
-
-# Frontend
-cd frontend
-npm run test        # Run once
-npm run test:watch  # Watch mode
-npm run lint        # Oxlint
-```
-
-## Deployment
-
-1. Set `APP_ENV=production` in backend `.env`
-2. Set a PostgreSQL `DATABASE_URL`
-3. Set `SECRET_KEY` and `JWT_SECRET_KEY` to unique random values of at least 32 characters
-4. Set `CORS_ORIGINS` to your deployed frontend origin(s)
-5. Run `flask db upgrade` to apply migrations
-6. Serve with Gunicorn: `gunicorn --bind 0.0.0.0:${PORT:-5000} run:app`
-7. Build frontend: `npm run build`
-8. Deploy `frontend/dist` behind HTTPS
-
-The backend exposes `/health` for load balancer health checks.
-
-## License
-
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+Access tracking from the booking detail page via `/client/bookings/:id/tracking`.
