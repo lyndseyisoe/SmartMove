@@ -20,6 +20,12 @@ class Booking(db.Model):
         nullable=False,
         default="pending"
     )
+    quoted_amount = db.Column(db.Numeric(10, 2), nullable=True)
+    quote_distance_km = db.Column(db.Float, nullable=True)
+    estimated_hours = db.Column(db.Float, nullable=True)
+    item_count = db.Column(db.Integer, nullable=True)
+    floor_number = db.Column(db.Integer, nullable=True)
+    has_elevator = db.Column(db.Boolean, nullable=True)
 
     # Pickup location
     pickup_address = db.Column(db.String(255), nullable=False)

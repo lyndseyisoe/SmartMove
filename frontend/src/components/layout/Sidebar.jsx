@@ -14,10 +14,10 @@ function NavItems({ role, onNavigate }) {
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+              'group flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200',
               isActive
                 ? 'bg-[var(--color-teal-light)] text-[var(--color-teal-dark)]'
-                : 'text-[var(--color-slate)] hover:bg-[var(--color-bg)] hover:text-[var(--color-navy)]'
+                : 'text-[var(--color-slate)] hover:translate-x-0.5 hover:bg-[var(--color-bg)] hover:text-[var(--color-navy)]'
             )
           }
         >
@@ -31,11 +31,11 @@ function NavItems({ role, onNavigate }) {
 
 function Brand() {
   return (
-    <div className="flex items-center gap-2 px-5 py-5">
-      <div className="flex size-8 items-center justify-center rounded-lg gradient-primary text-white">
+    <div className="flex items-center gap-2 px-5 py-6">
+      <div className="flex size-9 items-center justify-center rounded-xl gradient-primary text-white shadow-md shadow-teal/20">
         <Truck className="size-4" />
       </div>
-      <span className="text-[15px] font-bold text-[var(--color-navy)]">SmartMove</span>
+      <span className="text-lg font-extrabold tracking-tight text-[var(--color-navy)]">Smart<span className="text-[var(--color-teal)]">Move</span></span>
     </div>
   );
 }

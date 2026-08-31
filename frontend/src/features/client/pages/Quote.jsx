@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { Calculator } from 'lucide-react';
 import { Card, CardBody, CardHeader, Button, Input, Select, Spinner } from '../../../components/ui';
-import LocationPicker from '../../../components/maps/LocationPicker';
+import RouteMapPicker from '../../../components/maps/RouteMapPicker';
 import { estimateQuote } from '../../quotes/quoteSlice';
 import { formatKES } from '../../../utils/format';
 import { haversineKm } from '../../../utils/distance';
@@ -51,36 +51,32 @@ export default function Quote() {
         </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
         <Card>
           <CardHeader>
-            <h2 className="text-sm font-semibold text-[var(--color-navy)]">Pickup location</h2>
+            <h2 className="text-sm font-semibold text-[var(--color-navy)]">Pick your route</h2>
           </CardHeader>
-          <CardBody className="flex flex-col gap-3">
-            <div className="h-56">
-              <LocationPicker value={pickup} onChange={setPickup} />
+          <CardBody className="flex flex-col gap-4">
+            <div className="h-[360px]">
+              <RouteMapPicker
+                pickup={pickup}
+                destination={destination}
+                onPickupChange={setPickup}
+                onDestinationChange={setDestination}
+              />
             </div>
-            <Input
-              placeholder="Pickup address, e.g. Kilimani, Nairobi"
-              value={pickupAddress}
-              onChange={(e) => setPickupAddress(e.target.value)}
-            />
-          </CardBody>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <h2 className="text-sm font-semibold text-[var(--color-navy)]">Destination</h2>
-          </CardHeader>
-          <CardBody className="flex flex-col gap-3">
-            <div className="h-56">
-              <LocationPicker value={destination} onChange={setDestination} />
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Input
+                placeholder="Pickup address, e.g. Kilimani, Nairobi"
+                value={pickupAddress}
+                onChange={(e) => setPickupAddress(e.target.value)}
+              />
+              <Input
+                placeholder="Destination address, e.g. Westlands, Nairobi"
+                value={destinationAddress}
+                onChange={(e) => setDestinationAddress(e.target.value)}
+              />
             </div>
-            <Input
-              placeholder="Destination address, e.g. Westlands, Nairobi"
-              value={destinationAddress}
-              onChange={(e) => setDestinationAddress(e.target.value)}
-            />
           </CardBody>
         </Card>
 
@@ -123,12 +119,12 @@ export default function Quote() {
         </Card>
 
         {distanceKm != null && (
-          <p className="lg:col-span-2 text-sm text-[var(--color-slate)]">
+          <p className="text-sm text-[var(--color-slate)]">
             Straight-line distance: ~{distanceKm} km
           </p>
         )}
 
-        <div className="lg:col-span-2">
+        <div>
           <Button type="submit" loading={loading} disabled={!canSubmit}>
             <Calculator className="size-4" /> Calculate estimate
           </Button>

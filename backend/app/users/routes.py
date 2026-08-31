@@ -1,4 +1,9 @@
-from flask import Blueprint, jsonify, request
+import hashlib
+import logging
+import secrets
+from datetime import datetime, timedelta
+
+from flask import Blueprint, current_app, jsonify, request
 from flask_jwt_extended import (
     create_access_token,
     get_jwt_identity,
@@ -7,9 +12,56 @@ from flask_jwt_extended import (
 
 from app.extensions import db
 from app.users.model import User
+from app.auth_email import send_password_reset_email
+from app.models.password_reset import PasswordResetToken
 
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
+logger = logging.getLogger(__name__)
+
+
+@auth_bp.post("/forgot-password")
+def forgot_password():
+    data = request.get_json() or {}
+    email = str(data.get("email", "")).strip().lower()
+    # Always return the same response so the endpoint cannot enumerate accounts.
+    response = {"message": "If an account exists for that email, a reset link has been sent."}
+    if not email:
+        return jsonify(response), 200
+    user = User.query.filter_by(email=email).first()
+    if user is None:
+        return jsonify(response), 200
+
+    PasswordResetToken.query.filter_by(user_id=user.id, used_at=None).update({"used_at": datetime.utcnow()})
+    raw_token = secrets.token_urlsafe(32)
+    token = PasswordResetToken(user_id=user.id, token_hash=hashlib.sha256(raw_token.encode()).hexdigest(), expires_at=datetime.utcnow() + timedelta(minutes=current_app.config["RESET_TOKEN_EXPIRES_MINUTES"]))
+    db.session.add(token)
+    db.session.commit()
+    reset_url = f"{current_app.config['FRONTEND_URL']}/reset-password?token={raw_token}"
+    try:
+        send_password_reset_email(user.email, user.name, reset_url)
+    except Exception:
+        logger.exception("Password reset email delivery failed for user %s", user.id)
+    return jsonify(response), 200
+
+
+@auth_bp.post("/reset-password")
+def reset_password():
+    data = request.get_json() or {}
+    raw_token = str(data.get("token", ""))
+    password = data.get("password", "")
+    if not raw_token or not isinstance(password, str) or len(password) < 8:
+        return jsonify({"error": "A valid token and password of at least 8 characters are required"}), 400
+    token = PasswordResetToken.query.filter_by(token_hash=hashlib.sha256(raw_token.encode()).hexdigest()).first()
+    if token is None or token.used_at is not None or token.expires_at <= datetime.utcnow():
+        return jsonify({"error": "This reset link is invalid or has expired"}), 400
+    user = db.session.get(User, token.user_id)
+    if user is None:
+        return jsonify({"error": "This reset link is invalid or has expired"}), 400
+    user.set_password(password)
+    token.used_at = datetime.utcnow()
+    db.session.commit()
+    return jsonify({"message": "Password reset successfully"}), 200
 
 
 @auth_bp.post("/register")
@@ -37,6 +89,10 @@ def register():
     name = data["name"].strip()
     email = data["email"].strip().lower()
     password = data["password"]
+    role = data.get("role", "client")
+
+    if role not in {"client", "mover"}:
+        return jsonify({"error": "role must be either client or mover"}), 400
 
     if len(password) < 8:
         return jsonify({
@@ -53,6 +109,7 @@ def register():
     user = User(
         name=name,
         email=email,
+        role=role,
     )
 
     user.set_password(password)
