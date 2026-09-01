@@ -3,7 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import AuthLayout from '../AuthLayout';
-import { Input, Button } from '../../../components/ui';
+import { Input, Button, Select } from '../../../components/ui';
 import { register as registerUser, clearAuthError } from '../authSlice';
 import { registerSchema } from '../schemas';
 
@@ -15,7 +15,7 @@ export default function Register() {
     register: field,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm({ resolver: zodResolver(registerSchema) });
+  } = useForm({ resolver: zodResolver(registerSchema), defaultValues: { role: 'client' } });
 
   const onSubmit = async (values) => {
     dispatch(clearAuthError());
@@ -46,6 +46,10 @@ export default function Register() {
         <Input label="Email" type="email" placeholder="you@example.com" error={errors.email?.message} {...field('email')} />
         <Input label="Password" type="password" placeholder="At least 8 characters" error={errors.password?.message} {...field('password')} />
         <Input label="Confirm password" type="password" error={errors.confirmPassword?.message} {...field('confirmPassword')} />
+        <Select label="I am joining as" error={errors.role?.message} {...field('role')}>
+          <option value="client">Client — I need help moving</option>
+          <option value="mover">Mover — I provide moving services</option>
+        </Select>
         <Button type="submit" loading={isSubmitting} className="mt-2 w-full">
           Create account
         </Button>

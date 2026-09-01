@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
-import { Card, CardBody, Button, Input, Steps } from '../../../components/ui';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Card, CardBody, Button, Input, Select, Steps } from '../../../components/ui';
 import { createBooking } from '../../bookings/bookingSlice';
+import moversApi from '../../../services/moversApi';
 
 const STEP_LABELS = ['Mover', 'Move Details', 'Confirm'];
 
@@ -11,10 +12,17 @@ export default function Book() {
   const navigate = useNavigate();
   const { creating, createError } = useSelector((s) => s.bookings);
   const lastQuoteRequest = useSelector((s) => s.quotes.lastRequest);
+  const [searchParams] = useSearchParams();
 
   const [step, setStep] = useState(1);
-  const [moverId, setMoverId] = useState('');
+  const [moverId, setMoverId] = useState(searchParams.get('mover') || '');
+  const [movers, setMovers] = useState([]);
+  const [moversLoading, setMoversLoading] = useState(true);
   const [moveDate, setMoveDate] = useState('');
+
+  useEffect(() => {
+    moversApi.list().then(setMovers).finally(() => setMoversLoading(false));
+  }, []);
 
   const handleConfirm = async () => {
     const result = await dispatch(
@@ -25,6 +33,11 @@ export default function Book() {
         pickupAddress: lastQuoteRequest?.pickupAddress,
         destination: lastQuoteRequest?.destination,
         destinationAddress: lastQuoteRequest?.destinationAddress,
+        quoteDistanceKm: lastQuoteRequest?.distanceKm,
+        estimatedHours: lastQuoteRequest?.estimatedHours,
+        itemCount: lastQuoteRequest?.itemCount,
+        floorNumber: lastQuoteRequest?.floorNumber,
+        hasElevator: lastQuoteRequest?.hasElevator,
       })
     );
     if (createBooking.fulfilled.match(result)) {
@@ -52,15 +65,10 @@ export default function Book() {
       {step === 1 && (
         <Card>
           <CardBody className="flex flex-col gap-4">
-            <Input
-              label="Mover ID"
-              type="number"
-              min="1"
-              placeholder="e.g. 3"
-              value={moverId}
-              onChange={(e) => setMoverId(e.target.value)}
-              hint="There's no mover directory to browse yet — enter the ID of the mover account you're booking."
-            />
+            <Select label="Choose a mover" value={moverId} onChange={(e) => setMoverId(e.target.value)} hint={movers.length ? 'Choose from registered SmartMove movers.' : 'No registered movers are available yet.'}>
+              <option value="">{moversLoading ? 'Loading movers...' : 'Select a mover'}</option>
+              {movers.map((mover) => <option key={mover.id} value={mover.id}>{mover.name} · ID #{mover.id}</option>)}
+            </Select>
             <div>
               <Button disabled={!moverId} onClick={() => setStep(2)}>
                 Continue
@@ -92,7 +100,7 @@ export default function Book() {
           <CardBody className="flex flex-col gap-4">
             <h2 className="font-semibold text-[var(--color-navy)]">Review your booking</h2>
             <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-              <Row label="Mover ID" value={moverId} />
+              <Row label="Mover" value={movers.find((mover) => String(mover.id) === String(moverId))?.name || moverId} />
               <Row label="Move date" value={moveDate} />
               <Row label="Pickup" value={lastQuoteRequest?.pickupAddress || '—'} />
               <Row label="Destination" value={lastQuoteRequest?.destinationAddress || '—'} />

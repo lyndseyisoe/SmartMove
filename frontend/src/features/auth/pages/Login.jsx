@@ -44,6 +44,7 @@ export default function Login() {
         )}
         <Input label="Email" type="email" placeholder="you@example.com" error={errors.email?.message} {...field('email')} />
         <Input label="Password" type="password" placeholder="••••••••" error={errors.password?.message} {...field('password')} />
+        <Link to="/forgot-password" className="-mt-2 self-end text-xs font-medium text-[var(--color-teal-dark)] hover:underline">Forgot password?</Link>
         <Button type="submit" loading={isSubmitting} className="mt-2 w-full">
           Log in
         </Button>
