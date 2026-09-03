@@ -19,7 +19,6 @@ import Messages from '../features/client/pages/Messages';
 import Movers from '../features/client/pages/Movers';
 import MoverProfile from '../features/client/pages/MoverProfile';
 import PaymentCheckout from '../features/client/pages/PaymentCheckout';
-import Tracking from '../features/client/pages/Tracking';
 
 export const router = createBrowserRouter([
   {
@@ -52,7 +51,6 @@ export const router = createBrowserRouter([
               { path: '/client/movers', element: <Movers /> },
               { path: '/mover/profile', element: <MoverProfile /> },
               { path: '/client/bookings/:id/pay', element: <PaymentCheckout /> },
-              { path: '/client/bookings/:id/tracking', element: <Tracking /> },
             ],
           },
         ],
