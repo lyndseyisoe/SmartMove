@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Calendar } from 'lucide-react';
 import { Card, CardBody, Badge, Button, LoadingState, EmptyState, ErrorState } from '../../../components/ui';
 import { fetchBookings } from '../../bookings/bookingSlice';
-import { formatDate } from '../../../utils/format';
+import { formatDate, formatKES } from '../../../utils/format';
 
 export default function Bookings() {
   const dispatch = useDispatch();
@@ -47,7 +47,12 @@ export default function Bookings() {
                     <p className="font-semibold text-[var(--color-navy)]">{b.pickupAddress || `Booking #${b.id}`}</p>
                     <p className="text-xs text-[var(--color-slate)]">{formatDate(b.moveDate)}</p>
                   </div>
-                  <Badge status={b.status} />
+                  <div className="flex items-center gap-3">
+                    {b.estimatedCost != null && (
+                      <span className="text-sm font-semibold text-[var(--color-navy)]">{formatKES(b.estimatedCost)}</span>
+                    )}
+                    <Badge status={b.status} />
+                  </div>
                 </CardBody>
               </Card>
             </Link>
