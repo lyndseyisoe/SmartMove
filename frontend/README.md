@@ -1,29 +1,53 @@
 # SmartMove Frontend
 
-React frontend for SmartMove — a moving assistant web app. Built with Vite,
-Redux Toolkit, React Router, React Hook Form + Zod, Tailwind CSS, and
-Google Maps.
+A React frontend for **SmartMove**, a moving-assistant web app: get an
+instant quote, book a vetted mover, message them about the move, and pay
+via M-Pesa — all in one place.
 
-This build includes all implemented frontend features. Some pages are
-connected to live backend routes, while others are UI-ready and will work
-fully once the matching backend endpoints are deployed.
+This app is built to match its Flask backend **exactly, feature by
+feature**. Every page here calls a real, working backend endpoint — there
+is no mocked data and no page that quietly does nothing. As the backend
+adds features, the matching frontend piece gets added in its own pass; see
+[What's not here yet](#whats-not-here-yet-and-why) for the current
+boundary.
+
+## What you can actually do in this app
+
+- **Register and log in** as a client or a mover
+- **Get a quote** — pin pickup/destination on a map, enter move details
+  (hours, item count, floor, elevator access), and get a real cost
+  breakdown back
+- **Browse movers** and see their profile, service area, and pricing
+- **Book a move** with a chosen mover
+- **View and manage your bookings** — see status, quoted price, update
+  status/date
+- **Message the other party** on a booking (client ↔ mover), with real
+  read receipts
+- **Pay for a booking via M-Pesa** (STK push, with live status polling)
+- **As a mover**: set up your public profile (company info, service area,
+  pricing) so clients can find and book you
+- **Reset your password** by email if you forget it
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env   # fill in VITE_API_URL and VITE_GOOGLE_MAPS_API_KEY
+cp .env.example .env   # then fill in VITE_API_URL and VITE_GOOGLE_MAPS_API_KEY
 npm run dev
 ```
 
-The app runs at `http://localhost:5173` by default.
+The app runs at `http://localhost:5173`. You'll need the Flask backend
+running too — see `backend/README` or ask whoever maintains it; the short
+version is `pipenv install`, set up `backend/.env`, `flask db upgrade`,
+then `python run.py` (defaults to `http://localhost:5000`, which is what
+this frontend expects out of the box).
 
 ## Environment variables
 
 | Variable | Purpose |
 |---|---|
-| `VITE_API_URL` | Base URL of the Flask REST API, e.g. `http://localhost:5000` (no `/api` prefix — the backend mounts routes at root) |
-| `VITE_GOOGLE_MAPS_API_KEY` | Google Maps JS API key. The location picker on the Quote page falls back to a placeholder if unset. |
+| `VITE_API_URL` | Base URL of the Flask API, e.g. `http://localhost:5000` (no `/api` prefix — the backend mounts routes at root) |
+| `VITE_GOOGLE_MAPS_API_KEY` | Google Maps JS API key, used for the pickup/destination map on the Quote page. Falls back to a placeholder if unset — the rest of the app still works. |
 
 ## Scripts
 
@@ -33,110 +57,95 @@ npm run build        # production build to dist/
 npm run preview      # preview the production build locally
 npm run test         # run the Vitest suite once
 npm run test:watch   # run tests in watch mode
-npm run lint          # oxlint (fast); npx eslint src also available
+npm run lint          # oxlint (fast); npx eslint src for the full config
 ```
 
-## What's here
+## Dependencies
 
-- **Auth** — register, login, logout. The backend (`flask-jwt-extended`
-  defaults) returns a JWT in the response body rather than setting a
-  cookie, so `services/api.js` holds the token in memory and attaches it as
-  a Bearer header; `authSlice.js` persists it to `sessionStorage` so a page
-  reload doesn't drop the session (there's no refresh-token endpoint yet,
-  so treat this as a stopgap). Registration accepts an optional `role` field
-  (`client`, `mover`, `admin`), defaulting to `client`. Mover accounts are
-  created with `pending_approval: true` until an admin approves them. The
-  `register` thunk still auto-logs in after signup. Password reset is
-  available via `/auth/forgot-password` and `/auth/reset-password`.
-- **Get a Quote** (`/client/quote`) — pins pickup/destination on the map,
-  collects an address, estimated hours, item count, floor number, and
-  elevator access, and calls `POST /quotes/`. Distance is computed
-  client-side (`utils/distance.js`, a Haversine calculation mirroring the
-  backend's own `maps/service.py`) since the quote endpoint takes a
-  distance value rather than coordinates. The response is a full cost
-  breakdown (base fee, distance/labour/item/floor charges, total), not a
-  single number.
-- **Book a Move** (`/client/book`) — creates a booking via `POST /bookings/`.
-  The "choose a mover" step now uses a real picker that fetches approved
-  movers from `GET /movers` instead of a bare ID field. Bookings can also
-  be cancelled with `DELETE /bookings/<id>`.
-- **Bookings** (`/client/bookings`) — list and detail pages against
-  `GET /bookings/` and `GET /bookings/<id>`. The detail page's "Manage
-  booking" panel does a real `PATCH /bookings/<id>` to update status and
-  move date, and a cancel button hits `DELETE /bookings/<id>`.
-- **Profile / settings** (`/profile`) — view and edit your name and email
-  via `GET /profile` and `PATCH /profile`.
-- **Movers** (`/movers`) — browse approved movers by name and rating via
-  `GET /movers`, selectable when booking a move.
-- **Mover portal** (`/mover/*`) — dashboard with stats (`GET
-  /mover/dashboard`), job list (`GET /mover/jobs`), and availability toggle
-  (`PATCH /mover/availability`).
-- **Admin** (`/admin/*`) — user list (`GET /admin/users`), mover approvals
-  (`GET /admin/movers`, `PATCH /admin/movers/<id>/approve`), and reports
-  (`GET /admin/reports`).
-- **Inventory** (`/inventory`) — add and view moving items via
-  `GET /inventory` and `POST /inventory`.
-- **Reviews** (`/reviews`) — view and submit mover reviews via
-  `GET /reviews` and `POST /reviews`.
-- **Notifications** (`/notifications`) — list notifications and mark them
-  as read via `GET /notifications` and `PATCH /notifications/<id>/read`.
-- **Messages** (`/messages`) — send and receive messages via
-  `POST /messages` and `GET /messages`, with Socket.IO support for live
-  updates.
-- **Password reset** — forgot (`POST /auth/forgot-password`) and reset
-  (`POST /auth/reset-password`) flows with dedicated pages.
-
-## What's NOT here (and why)
-
-The backend is being built feature-by-feature, so the frontend only grows
-one feature at a time to match. Removed rather than stubbed:
-
-| Feature | Why it's not here |
+**Runtime**
+| Package | What it's for |
 |---|---|
-| Live tracking | Socket.IO is available, but real-time location sharing has not been implemented yet |
-| M-Pesa payments | Intentionally out of scope per the project spec |
+| `react`, `react-dom` | UI framework |
+| `react-router-dom` | Routing, route guards |
+| `@reduxjs/toolkit`, `react-redux` | Auth/booking/quote state |
+| `axios` | HTTP client, with a Bearer-token interceptor (see below) |
+| `react-hook-form`, `zod`, `@hookform/resolvers` | Form handling and validation |
+| `@react-google-maps/api` | Pickup/destination map on the Quote page |
+| `tailwindcss`, `@tailwindcss/vite` | Styling |
+| `lucide-react` | Icons |
+| `sonner` | Toast notifications |
+| `date-fns` | Date formatting |
+| `clsx` | Conditional class names |
 
-When the backend adds one of these, re-add the matching frontend piece
-against the real contract rather than restoring the old stubbed version —
-route/field names may end up different once they're actually implemented.
+**Dev**
+| Package | What it's for |
+|---|---|
+| `vite`, `@vitejs/plugin-react` | Build tooling |
+| `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `jsdom` | Testing |
+| `eslint` + plugins, `oxlint` | Linting |
+
+## How auth actually works here
+
+The backend (`flask-jwt-extended`, default config) returns a JWT in the
+**response body** on login/register — it does not set a cookie. So:
+
+- `services/api.js` holds the token in memory and attaches it to every
+  request as `Authorization: Bearer <token>`
+- `authSlice.js` also persists it to `sessionStorage`, so a page reload
+  doesn't drop your session. There's no refresh-token endpoint on the
+  backend yet, so treat this as a stopgap, not a permanent design.
+- Registration doesn't issue a token by itself, so `authSlice.js` logs in
+  immediately afterward with the same credentials — you never see a
+  separate "now log in" step.
+- The backend accepts `role: "client"` or `role: "mover"` at registration.
+  `admin` accounts can't be created through the UI at all (they're seeded
+  directly in the database).
 
 ## Project structure
 
 ```
 src/
-├── app/              # store, router, route guards
+├── app/                 # store, router, route guards
 ├── features/
-│   ├── auth/          # Login, Register, ForgotPassword, ResetPassword, authSlice.js
-│   ├── admin/pages/     # Dashboard, Users, Movers, Reports
-│   ├── client/pages/    # Dashboard, Quote, Book, Bookings, BookingDetail, Tracking
-│   ├── mover/pages/     # Dashboard, Jobs, Availability
-│   ├── profile/pages/   # Settings
-│   ├── notifications/pages/ # Notifications
-│   ├── reviews/pages/   # Reviews
-│   ├── inventory/pages/ # Inventory
-│   ├── messages/pages/  # Messages
-│   ├── bookings/        # bookingSlice.js
-│   ├── quotes/          # quoteSlice.js
-│   └── misc/pages/      # Landing, Unauthorized, NotFound
+│   ├── auth/               # Login, Register, Forgot/Reset Password, authSlice.js
+│   ├── client/pages/          # Dashboard, Quote, Book, Bookings, BookingDetail,
+│   │                           # Messages, Movers, MoverProfile, PaymentCheckout
+│   ├── bookings/                # bookingSlice.js
+│   ├── quotes/                     # quoteSlice.js
+│   └── misc/pages/                    # Landing, Unauthorized, NotFound
 ├── components/
-│   ├── ui/           # reusable design-system components
-│   ├── layout/       # Sidebar, Navbar, DashboardLayout
-│   └── maps/         # LocationPicker, MapUnavailable, RouteMapPicker
+│   ├── ui/               # reusable design-system components
+│   ├── layout/              # Sidebar, Navbar, DashboardLayout
+│   └── maps/                   # LocationPicker, RouteMapPicker, MapUnavailable
 ├── services/
-│   ├── api.js          # axios instance, Bearer-token handling, error normalization
-│   ├── authApi.js      # register / login / me / forgot-password / reset-password
-│   ├── profileApi.js   # get / update profile
-│   ├── moversApi.js    # list movers
-│   ├── bookingApi.js   # list / get / create / update / delete
-│   ├── quoteApi.js     # estimate
-│   ├── notificationsApi.js
-│   ├── reviewsApi.js
-│   ├── inventoryApi.js
-│   ├── messagesApi.js
-│   ├── adminApi.js
-│   ├── trackingApi.js  # tracking items CRUD
-│   └── mappers/        # bookingMapper.js (snake_case <-> camelCase)
+│   ├── api.js               # axios instance, Bearer-token handling, error normalization
+│   ├── authApi.js              # register / login / me / forgot-password / reset-password
+│   ├── bookingApi.js              # list / get / create / update
+│   ├── quoteApi.js                   # estimate
+│   ├── moversApi.js                     # browse movers
+│   ├── moverProfileApi.js                  # a mover's own profile
+│   ├── messagesApi.js                         # conversations, per-booking messages
+│   ├── paymentApi.js                             # M-Pesa STK push + status
+│   └── mappers/                                     # bookingMapper.js (snake_case <-> camelCase)
 ├── hooks/
-├── utils/            # cn, format, constants, distance (Haversine)
-└── styles/           # Tailwind theme + global CSS
+├── utils/                # cn, format, constants, distance (Haversine)
+└── styles/               # Tailwind theme + global CSS
 ```
+
+## Design system
+
+Tailwind theme tokens matching the SmartMove palette (teal/navy/slate),
+Inter typography, and status badge colors consistent across the app. The
+reusable UI kit lives in `src/components/ui`: `Button`, `Input`, `Select`,
+`Card`, `Badge`, `Modal`, `ConfirmDialog`, `ProgressBar`/`Steps`,
+`EmptyState`/`ErrorState`, `Spinner`/`Skeleton`, and `SaveToggle`.
+
+## Field mapping
+
+The backend serializes bookings in snake_case with flat lat/lng columns
+(`moving_date`, `pickup_latitude`, `quoted_amount`, ...).
+`services/mappers/bookingMapper.js` is the one place that translates
+between that and the camelCase shape components use — nothing else in the
+UI touches backend field names directly. If the backend's booking shape
+changes, that's the only file that should need updating.
+
