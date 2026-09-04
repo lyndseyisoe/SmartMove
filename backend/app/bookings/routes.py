@@ -7,6 +7,7 @@ from app.extensions import db
 from app.maps.service import calculate_distance
 from app.models.booking import Booking
 from app.quotes.service import calculate_quote
+from app.users.model import User
 
 
 bookings_bp = Blueprint(
@@ -24,7 +25,11 @@ def booking_to_dict(booking):
         "mover_id": booking.mover_id,
         "moving_date": booking.moving_date.isoformat(),
         "status": booking.status,
-        "quoted_amount": float(booking.quoted_amount) if booking.quoted_amount is not None else None,
+        "quoted_amount": (
+            float(booking.quoted_amount)
+            if booking.quoted_amount is not None
+            else None
+        ),
         "quote_distance_km": booking.quote_distance_km,
         "estimated_hours": booking.estimated_hours,
         "item_count": booking.item_count,
@@ -46,7 +51,14 @@ def booking_to_dict(booking):
 def create_booking():
     """
     Create a booking for the currently authenticated user.
+
     The client_id comes from the JWT token.
+
+    The selected mover_id is validated to ensure:
+    - it is a valid integer
+    - the mover is not the same user as the client
+    - the user exists
+    - the user has the mover role
     """
 
     data = request.get_json()
@@ -87,6 +99,39 @@ def create_booking():
 
     client_id = int(get_jwt_identity())
 
+    
+    # Validate mover_id
+    
+
+    try:
+        mover_id = int(data["mover_id"])
+    except (TypeError, ValueError):
+        return jsonify({
+            "error": "mover_id must be a valid integer"
+        }), 400
+
+    # A client cannot select themselves as the mover.
+    if mover_id == client_id:
+        return jsonify({
+            "error": "You cannot create a booking with yourself as the mover"
+        }), 400
+
+    # Make sure the selected user actually exists
+    # and has the mover role.
+    mover = User.query.filter_by(
+        id=mover_id,
+        role="mover"
+    ).first()
+
+    if mover is None:
+        return jsonify({
+            "error": "Selected mover does not exist"
+        }), 404
+
+    
+    # Calculate quote
+  
+
     try:
         quote_inputs = {
             "distance_km": data["quote_distance_km"],
@@ -95,13 +140,23 @@ def create_booking():
             "floor_number": data.get("floor_number", 0),
             "has_elevator": data.get("has_elevator", True),
         }
+
         quote = calculate_quote(**quote_inputs)
+
     except (KeyError, ValueError) as error:
-        return jsonify({"error": f"A valid quote is required before booking: {error}"}), 400
+        return jsonify({
+            "error": (
+                f"A valid quote is required before booking: {error}"
+            )
+        }), 400
+
+    
+    # Create booking
+    
 
     booking = Booking(
         client_id=client_id,
-        mover_id=data["mover_id"],
+        mover_id=mover_id,
         moving_date=moving_date,
         status="pending",
         quoted_amount=quote["total_estimate"],
