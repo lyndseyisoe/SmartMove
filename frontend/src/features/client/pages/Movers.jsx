@@ -10,11 +10,6 @@ export default function Movers() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // setLoading(true) lives in the input's onChange (a normal event handler)
-  // instead of at the top of the effect below — calling setState
-  // synchronously inside an effect body triggers cascading renders and is
-  // flagged by react-hooks/set-state-in-effect. The effect's own setState
-  // calls are all inside the .then/.catch/.finally callbacks, which is fine.
   const handleSearchChange = (event) => {
     setSearch(event.target.value);
     setLoading(true);

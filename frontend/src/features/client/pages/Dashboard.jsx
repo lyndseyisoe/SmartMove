@@ -7,10 +7,6 @@ import { formatDate } from '../../../utils/format';
 import moverProfileApi from '../../../services/moverProfileApi';
 import messagesApi from '../../../services/messagesApi';
 
-// Movers and clients see genuinely different content here — a mover has no
-// bookings of their own to show (GET /bookings/ is scoped to client_id, so
-// it's always empty for a mover account), and "Get a quote" / "Book a
-// move" don't apply to them at all.
 export default function Dashboard() {
   const user = useSelector((s) => s.auth.user);
   if (user?.role === 'mover') {
@@ -91,11 +87,6 @@ function MoverDashboard({ user }) {
     return () => { active = false; };
   }, []);
 
-  // There's no GET /bookings for movers — the backend scopes bookings to
-  // client_id only. GET /messages/conversations is the one endpoint that
-  // does compute a mover's assigned bookings server-side (to build the
-  // conversation list), so it doubles as the only real source of "my jobs"
-  // data available to a mover account right now.
   const recentJobs = conversations.slice(0, 5);
 
   return (
