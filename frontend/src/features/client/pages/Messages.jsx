@@ -24,10 +24,6 @@ export default function Messages() {
         preview: item.last_message?.body || 'Start a conversation about this move.',
         time: item.last_message?.created_at ? new Date(item.last_message.created_at).toLocaleDateString() : 'New',
         unread: item.unread_count,
-        // Real data from the booking this conversation belongs to — there
-        // is no "online" presence concept on the backend at all (no
-        // websockets, no last-seen tracking), so we show something true
-        // instead of fabricating a status.
         bookingStatus: item.booking?.status,
         pickupAddress: item.booking?.pickup_address,
       }));
@@ -38,11 +34,6 @@ export default function Messages() {
 
   useEffect(() => {
     if (!selected?.bookingId) return;
-    // GET /messages/<booking_id> marks every message addressed to the
-    // current user as read server-side, and returns each message's real
-    // `read_at` timestamp — so `readAt` here reflects a real read receipt,
-    // not a guess. It won't update live without re-opening the
-    // conversation, since the backend has no push/websocket layer yet.
     messagesApi.list(selected.bookingId).then((items) => setMessages(items.map((item) => ({
       id: item.id,
       from: item.sender_id === user?.id ? 'me' : 'them',
