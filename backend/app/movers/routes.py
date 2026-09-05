@@ -1,21 +1,35 @@
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 
 from app.extensions import db
+from app.models.review import Review
 from app.users.model import User
 
 
 movers_bp = Blueprint("movers", __name__, url_prefix="/movers")
 
 
-def profile_to_dict(mover):
+def rating_summary(mover_id):
+    average_rating, review_count = (
+        db.session.query(func.avg(Review.rating), func.count(Review.id))
+        .filter(Review.mover_id == mover_id)
+        .one()
+    )
+    return (
+        round(float(average_rating), 2) if average_rating is not None else None,
+        review_count or 0,
+    )
+
+
+def profile_to_dict(mover, include_application_status=False):
     complete = bool(
         mover.company_name and mover.service_area and mover.pricing_type and
         ((mover.pricing_type == "hourly" and mover.price_per_hour is not None) or
          (mover.pricing_type == "distance" and mover.price_per_distance is not None))
     )
-    return {
+    average_rating, review_count = rating_summary(mover.id)
+    profile = {
         "id": mover.id,
         "name": mover.name,
         "role": mover.role,
@@ -27,16 +41,23 @@ def profile_to_dict(mover):
         "price_per_hour": float(mover.price_per_hour) if mover.price_per_hour is not None else None,
         "price_per_distance": float(mover.price_per_distance) if mover.price_per_distance is not None else None,
         "profile_complete": complete,
+        "average_rating": average_rating,
+        "review_count": review_count,
     }
+    if include_application_status:
+        profile["status"] = mover.status
+        profile["rejection_reason"] = mover.rejection_reason
+    return profile
 
 
 @movers_bp.get("/")
 @jwt_required()
 def list_movers():
-    """Return real mover accounts available to clients for booking."""
+    """Return admin-approved mover accounts available to clients for booking."""
     search = request.args.get("search", "").strip().lower()
     query = User.query.filter(
         User.role == "mover",
+        User.status == "approved",
         User.company_name.isnot(None),
         User.service_area.isnot(None),
         User.pricing_type.isnot(None),
@@ -57,7 +78,7 @@ def get_my_profile():
     mover = db.session.get(User, int(get_jwt_identity()))
     if mover is None or mover.role != "mover":
         return jsonify({"error": "Mover profile not found"}), 404
-    return jsonify({"profile": profile_to_dict(mover)}), 200
+    return jsonify({"profile": profile_to_dict(mover, include_application_status=True)}), 200
 
 
 @movers_bp.put("/me")
@@ -92,4 +113,7 @@ def update_my_profile():
     mover.price_per_hour = price if pricing_type == "hourly" else None
     mover.price_per_distance = price if pricing_type == "distance" else None
     db.session.commit()
-    return jsonify({"message": "Mover profile saved", "profile": profile_to_dict(mover)}), 200
+    return jsonify({
+        "message": "Mover profile saved",
+        "profile": profile_to_dict(mover, include_application_status=True)
+    }), 200

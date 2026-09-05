@@ -2,11 +2,14 @@ from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
+from sqlalchemy import or_
 
 from app.extensions import db
 from app.maps.service import calculate_distance
 from app.models.booking import Booking
+from app.notifications.service import notify
 from app.quotes.service import calculate_quote
+from app.users.model import User
 
 
 bookings_bp = Blueprint(
@@ -88,6 +91,21 @@ def create_booking():
     client_id = int(get_jwt_identity())
 
     try:
+        mover_id = int(data["mover_id"])
+    except (TypeError, ValueError):
+        return jsonify({"error": "mover_id must be a valid integer"}), 400
+
+    mover = db.session.get(User, mover_id)
+
+    if mover is None or mover.role != "mover":
+        return jsonify({"error": "mover_id does not refer to a valid mover"}), 404
+
+    if mover.status != "approved":
+        return jsonify({
+            "error": "This mover is not currently accepting bookings"
+        }), 400
+
+    try:
         quote_inputs = {
             "distance_km": data["quote_distance_km"],
             "estimated_hours": data["estimated_hours"],
@@ -101,7 +119,7 @@ def create_booking():
 
     booking = Booking(
         client_id=client_id,
-        mover_id=data["mover_id"],
+        mover_id=mover_id,
         moving_date=moving_date,
         status="pending",
         quoted_amount=quote["total_estimate"],
@@ -119,6 +137,17 @@ def create_booking():
     )
 
     db.session.add(booking)
+    db.session.flush()  # assigns booking.id, needed for the notification below
+
+    client = db.session.get(User, client_id)
+    notify(
+        user_id=mover.id,
+        type_="booking_created",
+        title="New booking request",
+        body=f"{client.name if client else 'A client'} requested a move on {moving_date.isoformat()}.",
+        booking_id=booking.id,
+    )
+
     db.session.commit()
 
     return jsonify({
@@ -147,6 +176,29 @@ def get_bookings():
         booking_to_dict(booking)
         for booking in bookings
     ]), 200
+
+
+@bookings_bp.get("/mover")
+@jwt_required()
+def get_mover_bookings():
+    """
+    Return bookings assigned to the authenticated mover. Mirrors
+    GET /bookings/ for clients, which only ever returns a client's own
+    bookings - movers had no equivalent way to see their queue.
+    """
+    user = db.session.get(User, int(get_jwt_identity()))
+
+    if user is None or user.role != "mover":
+        return jsonify({"error": "Only mover accounts can view assigned bookings"}), 403
+
+    bookings = (
+        Booking.query
+        .filter_by(mover_id=user.id)
+        .order_by(Booking.created_at.desc())
+        .all()
+    )
+
+    return jsonify([booking_to_dict(booking) for booking in bookings]), 200
 
 
 @bookings_bp.get("/<int:booking_id>")
@@ -181,16 +233,19 @@ def get_booking(booking_id):
 @jwt_required()
 def update_booking(booking_id):
     """
-    Update the moving date or status of a user's booking.
+    Update the moving date or status of a booking. Reachable by either
+    the client who made the booking or the mover it's assigned to,
+    since a mover needs to be able to confirm/progress/complete a job
+    they were booked for. Only the client can reschedule the date.
     """
 
-    client_id = int(get_jwt_identity())
+    user_id = int(get_jwt_identity())
 
     booking = (
         Booking.query
-        .filter_by(
-            id=booking_id,
-            client_id=client_id
+        .filter(
+            Booking.id == booking_id,
+            or_(Booking.client_id == user_id, Booking.mover_id == user_id),
         )
         .first()
     )
@@ -207,6 +262,8 @@ def update_booking(booking_id):
             "error": "Request body is required"
         }), 400
 
+    is_client = booking.client_id == user_id
+
     allowed_statuses = {
         "pending",
         "confirmed",
@@ -215,6 +272,9 @@ def update_booking(booking_id):
         "cancelled",
     }
 
+    status_changed = False
+    date_changed = False
+
     if "status" in data:
         if data["status"] not in allowed_statuses:
             return jsonify({
@@ -222,11 +282,18 @@ def update_booking(booking_id):
                 "allowed_statuses": sorted(allowed_statuses)
             }), 400
 
-        booking.status = data["status"]
+        if data["status"] != booking.status:
+            booking.status = data["status"]
+            status_changed = True
 
     if "moving_date" in data:
+        if not is_client:
+            return jsonify({
+                "error": "Only the client can reschedule a booking"
+            }), 403
+
         try:
-            booking.moving_date = datetime.strptime(
+            new_date = datetime.strptime(
                 data["moving_date"],
                 "%Y-%m-%d"
             ).date()
@@ -234,6 +301,30 @@ def update_booking(booking_id):
             return jsonify({
                 "error": "moving_date must use YYYY-MM-DD format"
             }), 400
+
+        if new_date != booking.moving_date:
+            booking.moving_date = new_date
+            date_changed = True
+
+    if status_changed or date_changed:
+        # Notify whichever party didn't make the change.
+        recipient_id = booking.mover_id if is_client else booking.client_id
+        if status_changed:
+            notify(
+                user_id=recipient_id,
+                type_="booking_status_changed",
+                title=f"Booking {booking.status}",
+                body=f"Your move on {booking.moving_date.isoformat()} is now {booking.status}.",
+                booking_id=booking.id,
+            )
+        if date_changed:
+            notify(
+                user_id=recipient_id,
+                type_="booking_rescheduled",
+                title="Booking rescheduled",
+                body=f"The move has been rescheduled to {booking.moving_date.isoformat()}.",
+                booking_id=booking.id,
+            )
 
     db.session.commit()
 

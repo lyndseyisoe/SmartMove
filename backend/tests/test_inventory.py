@@ -1,11 +1,12 @@
 import pytest
 
 from app import create_app
+from app.config import Config
 from app.extensions import db
 from app.users.model import User
 
 
-class TestConfig:
+class TestConfig(Config):
     TESTING = True
     SECRET_KEY = "test-secret-key"
     JWT_SECRET_KEY = "test-jwt-secret-key"
