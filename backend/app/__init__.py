@@ -14,7 +14,13 @@ from .quotes.routes import quotes_bp
 from .messages.routes import messages_bp
 from .payments.routes import payments_bp
 from .inventory.routes import inventory_bp
+from .tracking.routes import tracking_bp
 from .models.password_reset import PasswordResetToken
+from .models.review import Review
+from .models.notification import Notification
+from .reviews.routes import reviews_bp
+from .notifications.routes import notifications_bp
+from .admin.routes import admin_bp
 
 
 def create_app(config_class=Config):
@@ -43,6 +49,10 @@ def create_app(config_class=Config):
     app.register_blueprint(movers_bp)
     app.register_blueprint(payments_bp)
     app.register_blueprint(inventory_bp)
+    app.register_blueprint(tracking_bp)
+    app.register_blueprint(reviews_bp)
+    app.register_blueprint(notifications_bp)
+    app.register_blueprint(admin_bp)
 
     @app.get("/")
     def health_check():
