@@ -106,10 +106,16 @@ def register():
             "error": "A user with this email already exists"
         }), 409
 
+    # Movers need admin approval before they're visible/bookable;
+    # clients (and any admin created directly, e.g. via seed) are
+    # active immediately.
+    status = "pending" if role == "mover" else "approved"
+
     user = User(
         name=name,
         email=email,
         role=role,
+        status=status,
     )
 
     user.set_password(password)
@@ -117,13 +123,18 @@ def register():
     db.session.add(user)
     db.session.commit()
 
+    message = "User registered successfully"
+    if role == "mover":
+        message = "Registration received. Your mover account is pending admin approval."
+
     return jsonify({
-        "message": "User registered successfully",
+        "message": message,
         "user": {
             "id": user.id,
             "name": user.name,
             "email": user.email,
             "role": user.role,
+            "status": user.status,
         }
     }), 201
 
@@ -154,6 +165,11 @@ def login():
             "error": "Invalid email or password"
         }), 401
 
+    if user.role == "mover" and user.status == "rejected":
+        return jsonify({
+            "error": "Your mover application was not approved. Contact support for details."
+        }), 403
+
     access_token = create_access_token(
         identity=str(user.id)
     )
@@ -166,6 +182,7 @@ def login():
             "name": user.name,
             "email": user.email,
             "role": user.role,
+            "status": user.status,
         }
     }), 200
 
@@ -188,5 +205,7 @@ def get_current_user():
             "name": user.name,
             "email": user.email,
             "role": user.role,
+            "status": user.status,
+            "rejection_reason": user.rejection_reason,
         }
     }), 200

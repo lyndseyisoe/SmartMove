@@ -34,6 +34,18 @@ class User(db.Model):
         default="client"
     )
 
+    # Account approval workflow. Clients and admins are "approved" the
+    # moment they register. Movers start "pending" and only become
+    # "approved" (visible to clients, bookable) once an admin reviews
+    # them, or "rejected" if the admin declines the application.
+    status = db.Column(
+        db.String(20),
+        nullable=False,
+        default="approved"
+    )
+
+    rejection_reason = db.Column(db.String(255), nullable=True)
+
     company_name = db.Column(db.String(120), nullable=True)
     phone = db.Column(db.String(40), nullable=True)
     bio = db.Column(db.Text, nullable=True)
