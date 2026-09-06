@@ -64,20 +64,24 @@ def create_app(config_class=Config):
     @app.get("/health")
     def health_check_detailed():
         """Readiness endpoint for load balancers and deployment checks."""
+        db_url = db.engine.url.render_as_string(hide_password=True)
         try:
             db.session.execute(text("SELECT 1"))
 
             return jsonify({
                 "status": "ok",
-                "database": "ok"
+                "database": "ok",
+                "debug_db_url": db_url
             }), 200
 
-        except Exception:
+        except Exception as e:
             db.session.rollback()
 
             return jsonify({
                 "status": "degraded",
-                "database": "unavailable"
+                "database": "unavailable",
+                "debug_db_url": db_url,
+                "debug_error": str(e)
             }), 503
 
     @app.errorhandler(404)
