@@ -68,10 +68,21 @@ def create_app(config_class=Config):
         try:
             db.session.execute(text("SELECT 1"))
 
+            current_db = db.session.execute(text("SELECT current_database()")).scalar()
+            current_schema = db.session.execute(text("SELECT current_schema()")).scalar()
+            search_path = db.session.execute(text("SHOW search_path")).scalar()
+            tables = db.session.execute(text(
+                "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name"
+            )).scalars().all()
+
             return jsonify({
                 "status": "ok",
                 "database": "ok",
-                "debug_db_url": db_url
+                "debug_db_url": db_url,
+                "debug_current_database": current_db,
+                "debug_current_schema": current_schema,
+                "debug_search_path": search_path,
+                "debug_public_tables": tables
             }), 200
 
         except Exception as e:
