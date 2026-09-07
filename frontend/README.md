@@ -4,29 +4,28 @@ A React frontend for **SmartMove**, a moving-assistant web app: get an
 instant quote, book a vetted mover, message them about the move, and pay
 via M-Pesa — all in one place.
 
-This app is built to match its Flask backend **exactly, feature by
-feature**. Every page here calls a real, working backend endpoint — there
-is no mocked data and no page that quietly does nothing. As the backend
-adds features, the matching frontend piece gets added in its own pass; see
-[What's not here yet](#whats-not-here-yet-and-why) for the current
-boundary.
+This app is built to match its Flask backend feature-for-feature — every
+page calls a real backend endpoint, there's no mocked data.
 
-## What you can actually do in this app
+## What you can do in this app
 
-- **Register and log in** as a client or a mover
-- **Get a quote** — pin pickup/destination on a map, enter move details
-  (hours, item count, floor, elevator access), and get a real cost
-  breakdown back
-- **Browse movers** and see their profile, service area, and pricing
-- **Book a move** with a chosen mover
-- **View and manage your bookings** — see status, quoted price, update
-  status/date
-- **Message the other party** on a booking (client ↔ mover), with real
-  read receipts
-- **Pay for a booking via M-Pesa** (STK push, with live status polling)
-- **As a mover**: set up your public profile (company info, service area,
+- Register and log in as a client or a mover
+- Get a quote — pin pickup/destination on a map, enter move details
+  (hours, item count, floor, elevator access), get a real cost breakdown
+- Browse movers and see their profile, service area, and pricing
+- Book a move with a chosen mover
+- View and manage bookings — status, quoted price, update status/date
+- Message the other party on a booking (client ↔ mover), with read
+  receipts
+- Pay for a booking via M-Pesa (STK push, with live status polling)
+- As a mover: set up a public profile (company info, service area,
   pricing) so clients can find and book you
-- **Reset your password** by email if you forget it
+- Reset your password by email if you forget it
+
+## Requirements
+
+- Node.js 18+ and npm
+- The SmartMove backend running and reachable (see `backend/README.md`)
 
 ## Getting started
 
@@ -36,11 +35,9 @@ cp .env.example .env   # then fill in VITE_API_URL and VITE_GOOGLE_MAPS_API_KEY
 npm run dev
 ```
 
-The app runs at `http://localhost:5173`. You'll need the Flask backend
-running too — see `backend/README` or ask whoever maintains it; the short
-version is `pipenv install`, set up `backend/.env`, `flask db upgrade`,
-then `python run.py` (defaults to `http://localhost:5000`, which is what
-this frontend expects out of the box).
+The app runs at `http://localhost:5173`. The backend must be running too
+(defaults to `http://localhost:5000`, which is what this frontend expects
+out of the box).
 
 ## Environment variables
 
@@ -57,18 +54,19 @@ npm run build        # production build to dist/
 npm run preview      # preview the production build locally
 npm run test         # run the Vitest suite once
 npm run test:watch   # run tests in watch mode
-npm run lint          # oxlint (fast); npx eslint src for the full config
+npm run lint         # oxlint (fast); npx eslint src for the full config
 ```
 
 ## Dependencies
 
 **Runtime**
+
 | Package | What it's for |
 |---|---|
 | `react`, `react-dom` | UI framework |
 | `react-router-dom` | Routing, route guards |
 | `@reduxjs/toolkit`, `react-redux` | Auth/booking/quote state |
-| `axios` | HTTP client, with a Bearer-token interceptor (see below) |
+| `axios` | HTTP client, with a Bearer-token interceptor |
 | `react-hook-form`, `zod`, `@hookform/resolvers` | Form handling and validation |
 | `@react-google-maps/api` | Pickup/destination map on the Quote page |
 | `tailwindcss`, `@tailwindcss/vite` | Styling |
@@ -78,16 +76,17 @@ npm run lint          # oxlint (fast); npx eslint src for the full config
 | `clsx` | Conditional class names |
 
 **Dev**
+
 | Package | What it's for |
 |---|---|
 | `vite`, `@vitejs/plugin-react` | Build tooling |
 | `vitest`, `@testing-library/react`, `@testing-library/jest-dom`, `@testing-library/user-event`, `jsdom` | Testing |
 | `eslint` + plugins, `oxlint` | Linting |
 
-## How auth actually works here
+## How auth works here
 
 The backend (`flask-jwt-extended`, default config) returns a JWT in the
-**response body** on login/register — it does not set a cookie. So:
+**response body** on login/register — it does not set a cookie.
 
 - `services/api.js` holds the token in memory and attaches it to every
   request as `Authorization: Bearer <token>`
@@ -107,26 +106,26 @@ The backend (`flask-jwt-extended`, default config) returns a JWT in the
 src/
 ├── app/                 # store, router, route guards
 ├── features/
-│   ├── auth/               # Login, Register, Forgot/Reset Password, authSlice.js
-│   ├── client/pages/          # Dashboard, Quote, Book, Bookings, BookingDetail,
-│   │                           # Messages, Movers, MoverProfile, PaymentCheckout
-│   ├── bookings/                # bookingSlice.js
-│   ├── quotes/                     # quoteSlice.js
-│   └── misc/pages/                    # Landing, Unauthorized, NotFound
+│   ├── auth/            # Login, Register, Forgot/Reset Password, authSlice.js
+│   ├── client/pages/    # Dashboard, Quote, Book, Bookings, BookingDetail,
+│   │                     # Messages, Movers, MoverProfile, PaymentCheckout
+│   ├── bookings/        # bookingSlice.js
+│   ├── quotes/          # quoteSlice.js
+│   └── misc/pages/      # Landing, Unauthorized, NotFound
 ├── components/
 │   ├── ui/               # reusable design-system components
-│   ├── layout/              # Sidebar, Navbar, DashboardLayout
-│   └── maps/                   # LocationPicker, RouteMapPicker, MapUnavailable
+│   ├── layout/           # Sidebar, Navbar, DashboardLayout
+│   └── maps/              # LocationPicker, RouteMapPicker, MapUnavailable
 ├── services/
-│   ├── api.js               # axios instance, Bearer-token handling, error normalization
-│   ├── authApi.js              # register / login / me / forgot-password / reset-password
-│   ├── bookingApi.js              # list / get / create / update
-│   ├── quoteApi.js                   # estimate
-│   ├── moversApi.js                     # browse movers
-│   ├── moverProfileApi.js                  # a mover's own profile
-│   ├── messagesApi.js                         # conversations, per-booking messages
-│   ├── paymentApi.js                             # M-Pesa STK push + status
-│   └── mappers/                                     # bookingMapper.js (snake_case <-> camelCase)
+│   ├── api.js              # axios instance, Bearer-token handling, error normalization
+│   ├── authApi.js           # register / login / me / forgot-password / reset-password
+│   ├── bookingApi.js         # list / get / create / update
+│   ├── quoteApi.js            # estimate
+│   ├── moversApi.js            # browse movers
+│   ├── moverProfileApi.js       # a mover's own profile
+│   ├── messagesApi.js            # conversations, per-booking messages
+│   ├── paymentApi.js              # M-Pesa STK push + status
+│   └── mappers/                    # bookingMapper.js (snake_case <-> camelCase)
 ├── hooks/
 ├── utils/                # cn, format, constants, distance (Haversine)
 └── styles/               # Tailwind theme + global CSS
@@ -135,9 +134,9 @@ src/
 ## Design system
 
 Tailwind theme tokens matching the SmartMove palette (teal/navy/slate),
-Inter typography, and status badge colors consistent across the app. The
-reusable UI kit lives in `src/components/ui`: `Button`, `Input`, `Select`,
-`Card`, `Badge`, `Modal`, `ConfirmDialog`, `ProgressBar`/`Steps`,
+Inter typography, and consistent status badge colors. The reusable UI kit
+lives in `src/components/ui`: `Button`, `Input`, `Select`, `Card`,
+`Badge`, `Modal`, `ConfirmDialog`, `ProgressBar`/`Steps`,
 `EmptyState`/`ErrorState`, `Spinner`/`Skeleton`, and `SaveToggle`.
 
 ## Field mapping
@@ -149,3 +148,16 @@ between that and the camelCase shape components use — nothing else in the
 UI touches backend field names directly. If the backend's booking shape
 changes, that's the only file that should need updating.
 
+## Deploying
+
+Build with the production API URL baked in, then deploy the static
+`dist/` output to any static host (Vercel, Netlify, etc.):
+
+```bash
+npm ci
+VITE_API_URL=https://your-backend-domain.example.com npm run build
+```
+
+Make sure the deployed frontend's exact origin is added to the backend's
+`CORS_ORIGINS` environment variable, or requests will be blocked by the
+browser.

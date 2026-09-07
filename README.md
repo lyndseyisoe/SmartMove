@@ -1,67 +1,82 @@
 # SmartMove
 
-SmartMove is a moving assistant with a React/Vite frontend and Flask API.
+SmartMove is a full-stack moving-assistant web app. It lets a **client**
+get an instant quote, find and book a vetted **mover**, message them about
+the move, track their belongings, and pay via M-Pesa — all in one place.
 
-## Features
+The project is split into two independent apps that talk to each other
+over a REST API:
 
-- **Booking & quotes** — clients can get a quote and book a move
-- **Mover profiles** — movers have company info, service area, and pricing
-- **M-Pesa payments** — STK Push integration via Safaricom Daraja SDK
-- **Belongings tracking** — checklist with packed/in-transit/delivered status
-- **Route mapping** — interactive Google Maps pickup/destination picker
-- **Password reset** — forgot/reset flow with email tokens
+```
+SmartMove/
+├── frontend/   React + Vite single-page app (what the user sees)
+└── backend/    Flask REST API (auth, quotes, bookings, payments, etc.)
+```
 
-## Production checklist
+Each folder has its own README with setup instructions and its own
+dependency list — see **[frontend/README.md](./frontend/README.md)** and
+**[backend/README.md](./backend/README.md)**. This file only covers what
+the project *is* and how the two pieces fit together.
 
-1. Set `APP_ENV=production`, a PostgreSQL `DATABASE_URL`, and unique random
-   values of at least 32 characters for `SECRET_KEY` and `JWT_SECRET_KEY`.
-2. Set `CORS_ORIGINS` to the deployed frontend origin(s), comma-separated.
-3. Apply database migrations:
+## What the app does
 
-   ```bash
-   cd backend
-   pipenv install --deploy
-   pipenv run pip install gunicorn
-   pipenv run flask db upgrade
-   ```
+- **Auth** — register/log in as a client or a mover, JWT-based sessions
+- **Quotes** — pin pickup/destination on a map, enter move details (hours,
+  item count, floor, elevator access) and get a real cost estimate
+- **Movers** — browse mover profiles (service area, pricing); movers can
+  set up and manage their own public profile
+- **Bookings** — book a mover, view/manage booking status and date
+- **Messaging** — client ↔ mover chat per booking, with read receipts
+- **Payments** — pay a booking via M-Pesa (STK Push), with live status
+  polling
+- **Belongings tracking** — per-booking checklist of items marked
+  `packed` → `in_transit` → `delivered`
+- **Password reset** — forgot/reset flow over email
 
-4. Serve the Flask app with a production WSGI server, for example:
+## How the two halves talk to each other
 
-   ```bash
-   pipenv run gunicorn --bind 0.0.0.0:${PORT:-5000} run:app
-   ```
+- The frontend is a pure client-side app (Vite/React) — it holds no
+  secrets and does no server-side rendering.
+- It talks to the Flask backend over plain HTTP(S) using its base URL,
+  configured via the frontend's `VITE_API_URL` environment variable.
+- Auth uses a JWT returned in the response body (not a cookie). The
+  frontend attaches it as `Authorization: Bearer <token>` on every
+  request afterward.
+- Because the two apps live on different origins in production (e.g. a
+  Vercel frontend and a Render backend), the backend must have the
+  frontend's exact origin listed in its `CORS_ORIGINS` environment
+  variable, or the browser will block every request.
 
-5. Build the frontend with the production API URL:
+## Running the whole thing locally
 
-   ```bash
-   cd frontend
-   npm ci
-   npm run build
-   ```
+You need both halves running at the same time:
 
-   Deploy `frontend/dist` behind HTTPS and set `VITE_API_URL` before building.
+1. Start the backend first (see `backend/README.md`) — it defaults to
+   `http://localhost:5000`.
+2. Start the frontend (see `frontend/README.md`) — it defaults to
+   `http://localhost:5173` and expects the backend at
+   `http://localhost:5000` out of the box.
 
-The backend exposes `/health` as a database readiness check. It returns `200`
-when the API can reach its database and `503` otherwise.
+## Deploying
 
-## M-Pesa setup
+- **Backend**: any host that can run a Python/WSGI app (e.g. Render).
+  Set `APP_ENV=production`, a real Postgres `DATABASE_URL`, random
+  32+ character `SECRET_KEY`/`JWT_SECRET_KEY` values, run
+  `flask db upgrade`, and serve with a WSGI server such as `gunicorn`.
+- **Frontend**: any static host (e.g. Vercel). Set `VITE_API_URL` to the
+  deployed backend's URL at build time, then `npm run build` and deploy
+  the `dist/` folder.
+- Whatever frontend origin you deploy to, add it to the backend's
+  `CORS_ORIGINS` (comma-separated if there's more than one).
 
-Create a Daraja app and set these environment variables:
+## Third-party services used
 
-- `MPESA_CONSUMER_KEY`
-- `MPESA_CONSUMER_SECRET`
-- `MPESA_SHORTCODE`
-- `MPESA_PASSKEY`
-- `MPESA_CALLBACK_URL` — must be a public HTTPS URL
-- `MPESA_ENV` — `sandbox` for testing, `live` for production
+| Service | Used for |
+|---|---|
+| PostgreSQL | Primary database |
+| Google Maps JS API | Pickup/destination map on the Quote page |
+| Safaricom M-Pesa (Daraja) | STK Push payments |
+| Resend | Transactional email for password resets |
 
-Test with `MPESA_ENV=sandbox` before switching to `live`.
-
-## Belongings tracking
-
-The tracking feature lets clients add items to a booking and mark them as:
-- `packed` — items are packed and ready
-- `in_transit` — items are on the way
-- `delivered` — items have arrived
-
-Access tracking from the booking detail page via `/client/bookings/:id/tracking`.
+See each app's README for the exact environment variables each of these
+services needs.
