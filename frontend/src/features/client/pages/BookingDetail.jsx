@@ -32,10 +32,6 @@ export default function BookingDetail() {
           )}
           <Badge status={booking.status} />
           {booking.estimatedCost && <Button as={Link} to={`/client/bookings/${booking.id}/pay`} size="sm"><CreditCard className="size-4" /> Pay with M-Pesa</Button>}
-          {/* "Track items" removed — it called a backend endpoint
-              (/tracking/*) that exists in code but is never registered in
-              create_app(), so it 404'd on every request. Re-add once the
-              backend actually wires up the tracking blueprint. */}
         </div>
       </div>
 
